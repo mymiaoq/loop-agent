@@ -1,2 +1,4 @@
 * text=auto eol=lf
 *.cmd text eol=crlf
+# Preserve imported upstream bytes; nested upstream rules still govern its declared text files.
+.docloop/superpowers/** -text
