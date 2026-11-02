@@ -6,6 +6,7 @@ from pathlib import Path
 from .governance import GateError
 from .project import inspect_project
 from .workflow import Workflow
+from .skill_runtime import SkillRegistry
 
 
 def output(value):
@@ -20,6 +21,14 @@ def main(argv=None):
     parser.add_argument('--root', type=Path, default=Path.cwd())
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('doctor', help='Check project configuration and contracts')
+    skill = commands.add_parser('skill', help='Read the current project-local Skill content and Hash')
+    skill.add_argument('ref', help='superpowers:brainstorming or docloop:spec-create')
+    workbench = commands.add_parser('workbench', help='Open the local project workbench')
+    workbench.add_argument('--data-root', type=Path)
+    workbench.add_argument('--port', type=int, default=8765)
+    workbench.add_argument('--storage', choices=['sandbox', 'oracle'], default='sandbox')
+    workbench.add_argument('--open', action='store_true')
+    workbench.add_argument('--check', action='store_true')
     demo = commands.add_parser('demo', help='Create a controlled demo; pauses for approval')
     demo.add_argument('--change-id', required=True)
     demo.add_argument('--scenario', choices=['success', 'verification-failure'], default='success')
@@ -36,8 +45,24 @@ def main(argv=None):
         item.add_argument('change_id')
     args = parser.parse_args(argv)
     try:
+        if args.command == 'workbench':
+            from .workbench import create_app, serve
+            data_root = args.data_root or args.root.resolve().parent / 'agent-loop-data'
+            if args.check:
+                app = create_app(args.root, data_root, storage=args.storage)
+                try:
+                    app.state.service.state()
+                    output(app.state.service.environment())
+                finally:
+                    app.state.service.store.close()
+            else:
+                serve(args.root, data_root, port=args.port, storage=args.storage, open_browser=args.open)
+            return 0
         if args.command == 'doctor':
             output(inspect_project(args.root))
+            return 0
+        if args.command == 'skill':
+            output(SkillRegistry(args.root).load(args.ref))
             return 0
         with Workflow(args.root) as flow:
             if args.command == 'demo':

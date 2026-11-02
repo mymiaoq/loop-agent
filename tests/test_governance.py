@@ -44,3 +44,8 @@ class GovernanceTests(unittest.TestCase):
         with self.assertRaises(GateError):
             transition('draft', 'accepted', 'orchestrator-agent')
         self.assertEqual(transition('implemented', 'verified', 'verify-agent'), 'verified')
+
+    def test_create_preserves_approved_utf8_newline_bytes(self):
+        self.gov.create('newline-spec', '# 标题\nAC-001: line\n')
+        self.assertEqual((self.gov.path('newline-spec') / 'spec.md').read_bytes(),
+                         '# 标题\nAC-001: line\n'.encode('utf-8'))

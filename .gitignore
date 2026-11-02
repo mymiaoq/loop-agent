@@ -9,3 +9,5 @@ dist/
 .docloop/recovery/*
 !.gitkeep
 .env
+.env.*
+node_modules/

@@ -40,7 +40,7 @@ class Governance:
             raise GateError('Spec cannot be empty')
         path = self.path(change_id)
         path.mkdir(parents=True, exist_ok=False)
-        (path / 'spec.md').write_text(spec, encoding='utf-8')
+        (path / 'spec.md').write_bytes(spec.encode('utf-8'))
         (path / 'decisions.md').write_text('# Decisions\nNo approved decisions yet.\n', encoding='utf-8')
         write_json(path / 'sources.json', {'source': source, 'sha256': sha256(spec.encode()),
                    'lines': [{'line': i, 'text': line} for i, line in enumerate(spec.splitlines(), 1)]})

@@ -9,8 +9,37 @@ mode: real
 superpowers:
   repository: https://github.com/obra/superpowers.git
   commit: 2ce8aa15d05bd57213e6f746f953aafb7ded7a8b
-  enabled: false
-  install_path: null
+  enabled: true
+  install_path: .docloop/superpowers
+  manifest_path: .docloop/superpowers.lock.json
+  integrity_policy: editable
+skill_runtime:
+  docloop_path: .docloop/skills
+  bootstrap:
+  - superpowers:using-superpowers
+  stages:
+    spec:
+    - docloop:spec-create
+    - superpowers:brainstorming
+    plan:
+    - docloop:project-bootstrap
+    - superpowers:using-git-worktrees
+    - docloop:plan-create
+    - superpowers:writing-plans
+    - docloop:checklist-create
+    implement:
+    - superpowers:test-driven-development
+    verify:
+    - docloop:test-runner
+    - superpowers:verification-before-completion
+    review:
+    - superpowers:requesting-code-review
+    archive:
+    - docloop:project-archiving
+    - superpowers:finishing-a-development-branch
+    recovery:
+    - docloop:recovery-diagnosis
+    - superpowers:systematic-debugging
 limits:
   retries: 3
   repairs: 3

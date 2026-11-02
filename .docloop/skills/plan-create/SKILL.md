@@ -18,7 +18,7 @@ required: [task_context, baseline]
 read_file, write_change, superpowers_adapter；实际权限取 task_context 与适配器权限的交集。
 
 ## 执行步骤
-重验基线；调用已锁定 writing-plans；逐项映射需求，依赖先行。
+重验基线；通过项目 SkillRegistry 读取 `superpowers:writing-plans`，实际文件为 `.docloop/superpowers/skills/writing-plans/SKILL.md`；按本地当前内容准备模型输入。模型未配置时明确阻塞，不伪造正式计划；逐项映射需求，依赖先行。
 
 ## 输出 Schema
 tasks.md，TASK ID、依赖和文件范围。所有结果标明 mode 与 status。

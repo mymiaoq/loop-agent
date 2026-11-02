@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 import yaml
 from .governance import GateError
+from .superpowers import inspect_superpowers
+from .skill_runtime import SkillRegistry
 
 SKILL_FIELDS = ('name', 'description')
 REQUIRED_SKILLS = {'document-parser', 'spec-create', 'plan-create', 'checklist-create',
@@ -67,8 +69,8 @@ def inspect_project(root: Path):
     lock = config['superpowers']
     if not re.fullmatch(r'[a-f0-9]{40}', lock['commit']):
         raise GateError('Superpowers must pin a real Commit SHA')
+    SkillRegistry(root).validate_routes()
     return {'status': 'passed', 'profile': config['profile'], 'agents': agents,
-            'skills': skills, 'active_rules': active, 'superpowers': {
-                'commit': lock['commit'], 'enabled': lock['enabled'],
-                'runtime_loaded': False}, 'mode': 'framework',
+            'skills': skills, 'active_rules': active,
+            'superpowers': inspect_superpowers(root, lock), 'mode': 'framework',
             'limitations': ['Configuration validation does not prove model compliance or live business execution.']}

@@ -4,6 +4,7 @@ import re
 import sqlite3
 import subprocess
 import time
+from uuid import uuid4
 from dataclasses import asdict
 from pathlib import Path
 from typing import TypedDict
@@ -18,6 +19,7 @@ from .governance import GateError, Governance, write_json
 from .reliability import Blocked, Limits, Reliability, fingerprint
 from .project import read_yaml, select_context
 from .execution_lock import run_lock
+from .skill_runtime import SkillRegistry
 
 
 class RunState(TypedDict, total=False):
@@ -36,10 +38,11 @@ class RunState(TypedDict, total=False):
 
 
 class Workflow:
-    def __init__(self, root: Path, limits=None):
+    def __init__(self, root: Path, limits=None, *, instruction_root=None):
         self.root = Path(root).resolve()
+        self.instruction_root = Path(instruction_root).resolve() if instruction_root else self.root
         self.gov = Governance(self.root)
-        config_path = self.root / '.docloop/project.yaml'
+        config_path = self.instruction_root / '.docloop/project.yaml'
         self.project_config = read_yaml(config_path) if config_path.exists() else {}
         self.limits = limits or Limits(**self.project_config.get('limits', {}))
         self.reliability = Reliability(self.limits, clock=time.time)
@@ -80,7 +83,7 @@ class Workflow:
         self.gov.create(change_id, spec, source)
         context = TaskContext(change_id)
         if self.project_config:
-            _, _, context.rules = select_context(self.root, context.domains)
+            _, _, context.rules = select_context(self.instruction_root, context.domains)
             context.skills = self.project_config.get('routing', {}).get('workflow', [])
         context.validate()
         return self._invoke({'change_id': change_id, 'mode': mode, 'scenario': scenario,
@@ -153,6 +156,7 @@ class Workflow:
                     self._load_budget(state['change_id'])
                     self.reliability.charge('graph_steps')
                     self.gov.assert_baseline(state['change_id'])
+                self._prepare_agent_input(state, 'spec' if node.__name__ == '_approval' else node.__name__[1:])
                 result = node(state)
                 if node.__name__ != '_approval':
                     self._save_budget(state['change_id'])
@@ -173,6 +177,24 @@ class Workflow:
                 self._record(state['change_id'], node.__name__, {'status': 'blocked', 'error': str(error)})
                 return {'status': 'blocked', 'error': str(error)}
         return guarded
+
+    def _prepare_agent_input(self, state, stage):
+        if not self.project_config:
+            return  # 无项目配置的最小测试/演示不宣称已加载项目 Skills。
+        path = self.gov.path(state['change_id'])
+        registry = SkillRegistry(self.instruction_root)
+        packet = registry.build_agent_input(stage, state['task_context'],
+                                             spec=(path / 'spec.md').read_text(encoding='utf-8'))
+        snapshot = path / 'agent-inputs' / f'{stage}-{uuid4().hex}.json'
+        write_json(snapshot, packet, exclusive=True)
+        self.last_agent_input = packet
+        trace = self.root / '.docloop/traces' / f'{state["change_id"]}.jsonl'
+        trace.parent.mkdir(parents=True, exist_ok=True)
+        with trace.open('a', encoding='utf-8') as stream:
+            for skill in packet['skills']:
+                stream.write(json.dumps({'event': 'skill.loaded', 'stage': stage, **skill,
+                    'input_snapshot': snapshot.relative_to(self.root).as_posix(),
+                    'input_sha256': packet['input_sha256'], 'model_invoked': False}, ensure_ascii=False) + '\n')
 
     def _record(self, change_id, stage, result):
         path = self.root / '.docloop/traces' / f'{change_id}.jsonl'
@@ -208,7 +230,7 @@ class Workflow:
 
     def _plan(self, state):
         if state['mode'] != 'demo':
-            raise Blocked('Real model/tool/Superpowers adapter is not configured; no business implementation executed')
+            raise Blocked('Real model/coding adapter is not configured; project-local Skill inputs prepared, no business implementation executed')
         path = self.gov.path(state['change_id'])
         rows = '\n'.join(f'| {ac} | TASK-001 | TC-{i:03} | V-{i:03} |'
                          for i, ac in enumerate(state['acceptance_ids'], 1))
