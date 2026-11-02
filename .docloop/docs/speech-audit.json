@@ -1,0 +1,3088 @@
+{
+  "source_path": "H:\\dingdingData\\演讲稿.md",
+  "source_sha256": "166e3ba0f1770ed46a02a33d233509607286b109275c377bb99c7928b6e5a9d1",
+  "source_line_count": 226,
+  "audit_date": "2026-11-02",
+  "code_baseline": "44d95df",
+  "item_count": 199,
+  "items": [
+    {
+      "id": "SP-01-01",
+      "source_lines": [
+        15
+      ],
+      "claim": "理解需求",
+      "finding": "部分/真实效果未验证；workbench_service.py:110-145 有生成Spec路径，real调用gateway、sandbox填固定草稿；非持续对话理解。tests/test_workbench_service.py:20,30,35 为相关用例。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-02",
+      "source_lines": [
+        15
+      ],
+      "claim": "自动拆任务",
+      "finding": "部分；workflow.py:231-241 只生成固定TASK-001沙箱计划，real在233阻塞。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-03",
+      "source_lines": [
+        15
+      ],
+      "claim": "自动写代码",
+      "finding": "缺失（业务能力）；adapters.py:40-57 仅写result.json并提交；workflow.py:233直接声明无业务实现执行。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-04",
+      "source_lines": [
+        15
+      ],
+      "claim": "自动跑测试",
+      "finding": "部分；adapters.py:65-86 实跑子进程解析JSON断言value=42，未实现业务测试选择/生成/运行。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-05",
+      "source_lines": [
+        15
+      ],
+      "claim": "自动整理文档",
+      "finding": "部分；workflow.py:237-241,255-271 写固定计划、证据、审查；evidence.py:29-51复制归档，无通用技术设计/报告生成器。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-06",
+      "source_lines": [
+        15
+      ],
+      "claim": "一整套自己跑完",
+      "finding": "部分且表述过强；demo能走审批后六阶段，real在plan阻塞；tests/test_workflow.py:20,42覆盖这两种语义。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-07",
+      "source_lines": [
+        15
+      ],
+      "claim": "每一步留痕",
+      "finding": "部分；workflow.py:199-205记阶段/状态/mode/usage；181-197记上下文hash；不是每个模型思考或业务动作日志。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-08",
+      "source_lines": [
+        15
+      ],
+      "claim": "交付需求文档",
+      "finding": "已实现（Spec保存）；governance.py:38-46保存spec与来源，51-63保存基线。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-09",
+      "source_lines": [
+        15
+      ],
+      "claim": "交付设计文档",
+      "finding": "缺失（通用自动产出）；evidence.py:31必需清单只有spec/decisions/tasks/checkList/evidence/review，没有technical-design。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-10",
+      "source_lines": [
+        15
+      ],
+      "claim": "交付测试报告",
+      "finding": "部分；workflow.py:255-256写evidence.yaml，但具体内容来自固定JSON验证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-11",
+      "source_lines": [
+        15
+      ],
+      "claim": "交付变更记录",
+      "finding": "部分；evidence.py:29-51归档文件与hash清单；不是自动语义changelog。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-12",
+      "source_lines": [
+        17
+      ],
+      "claim": "干活并自己写报告",
+      "finding": "部分；固定demo控制流会写结构化证据；真实业务Agent报告闭环尚无。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-01",
+      "source_lines": [
+        27,
+        55
+      ],
+      "claim": "orchestrator总调度、不写业务代码",
+      "finding": "部分；.docloop/agents/orchestrator-agent.md:3-24定义；workflow.py:52-64固定节点路由是真实编排，非模型自主派工。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-02",
+      "source_lines": [
+        28,
+        56
+      ],
+      "claim": "spec-agent将模糊话整理成Spec",
+      "finding": "部分/真实效果未验证；workbench_service.py:118-134构造本地Skill上下文并可调用模型；135-145为沙箱固定模板。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-03",
+      "source_lines": [
+        56
+      ],
+      "claim": "spec-agent主动列疑问并追问",
+      "finding": "部分；workbench_service.py:120-122在提示中要求待确认事项；缺少多轮追问状态机/问答闭环，不能把提示要求当模型已遵从。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-04",
+      "source_lines": [
+        28,
+        57
+      ],
+      "claim": "implement-agent照测试写业务代码",
+      "finding": "仅定义/业务执行缺失；.docloop/agents/implement-agent.md:3-26规定TDD和编译；adapters.py:40-57为确定性result.json写入。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-05",
+      "source_lines": [
+        57
+      ],
+      "claim": "implement快速编译/构建",
+      "finding": "仅定义；.docloop/agents/implement-agent.md:22-27有要求；DemoAdapter未运行应用构建。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-06",
+      "source_lines": [
+        57
+      ],
+      "claim": "implement最多推到implemented",
+      "finding": "已实现（契约级）；contracts.py:5-21将in_progress→implemented限定implement，implemented→verified限定verify；tests/test_governance.py:41。角色是调用传入的字符串，非独立身份认证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-07",
+      "source_lines": [
+        28,
+        58
+      ],
+      "claim": "verify-agent独立验证",
+      "finding": "部分；adapters.py:65-76另起子进程不消费实现者通过声明，是真实独立检查；仍同一Python适配器实现，非独立模型主体。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-08",
+      "source_lines": [
+        58
+      ],
+      "claim": "verify按Spec验收语义制定测试",
+      "finding": "缺失；adapters.py:67-69固定断言42；80-85把同一结果复制给每个AC，不能证明多个不同AC的语义覆盖。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-09",
+      "source_lines": [
+        58
+      ],
+      "claim": "verify自己跑业务构建",
+      "finding": "仅定义；.docloop/rules/verification-standard.md:11-26为领域路由；adapters.py:65-86只跑JSON脚本。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-10",
+      "source_lines": [
+        58
+      ],
+      "claim": "verify自己开浏览器点一遍",
+      "finding": "仅定义/未接入；project.yaml adapters.browser=null；workflow._verify仅DemoAdapter；浏览器验收测试不等于运行时Browser Adapter。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-11",
+      "source_lines": [
+        58
+      ],
+      "claim": "verify自己测业务接口",
+      "finding": "仅定义/未接入；workflow.py:252-258未调用HTTP业务验证，只有JSON验证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-12",
+      "source_lines": [
+        58
+      ],
+      "claim": "verify产evidence",
+      "finding": "已实现（受控）；workflow.py:255-257写evidence.yaml并校验，adapters.py:78-85含Commit、TC、观察、日志引用。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-13",
+      "source_lines": [
+        28,
+        59
+      ],
+      "claim": "review检查命名和分层",
+      "finding": "仅定义；.docloop/agents/review-agent.md:9-15定义；workflow.py:260-271仅检查证据结构/文件，明确无语义业务代码审查。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-14",
+      "source_lines": [
+        59
+      ],
+      "claim": "review检查禁区",
+      "finding": "仅定义/部分基础边界；角色规则有要求；ToolAdapter:17-27限定cwd和完整argv，非review自动扫描保护文件差异。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-15",
+      "source_lines": [
+        59
+      ],
+      "claim": "review检查证据充分性",
+      "finding": "部分；workflow.py:262-267验证覆盖字段和引用文件存在，不验证测试含义是否满足业务AC。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-16",
+      "source_lines": [
+        59
+      ],
+      "claim": "review不跑测试、不写代码",
+      "finding": "部分；当前_review仅读证据、写review.yaml；角色文本有职责分离，未形成OS级身份/权限隔离。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-17",
+      "source_lines": [
+        29,
+        40
+      ],
+      "claim": "需求中控管来源/审批，不碰业务代码",
+      "finding": "已实现（治理机制）；governance.py:38-75负责source、baseline、hash；不含业务写入。需求语义澄清由另一路径模型提示实现。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-18",
+      "source_lines": [
+        29,
+        41
+      ],
+      "claim": "执行中控安排Agent和Skill",
+      "finding": "部分；workflow.py:52-64固定阶段；181-197加载当前本地上下文，不调用真实编码Agent。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-19",
+      "source_lines": [
+        29,
+        42
+      ],
+      "claim": "可靠性中控管重试、停止",
+      "finding": "部分；reliability.py:43-84有预算、重试、repair原语；repair未在当前src调用，不能说已自动运行修复循环。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-20",
+      "source_lines": [
+        42
+      ],
+      "claim": "可靠性不改需求、不绕权限",
+      "finding": "部分；governance.py:66-75每阶段前hash断言（workflow.py:158），ToolAdapter完整argv；合作式边界，不是OS沙箱。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-21",
+      "source_lines": [
+        30,
+        45
+      ],
+      "claim": "Rules/Skills存在",
+      "finding": "已实现（资源/加载）；project.py:26-42加载按profile选的规则；44-76检查五角色、15技能格式与路由；skill_runtime相关测试:39-117。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-22",
+      "source_lines": [
+        43
+      ],
+      "claim": "Superpowers先想清楚",
+      "finding": "仅定义/加载已实现；project.yaml stage.spec映射brainstorming；workflow.py:181-197记录加载，未调用模型证明遵从。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-23",
+      "source_lines": [
+        43
+      ],
+      "claim": "自动Git Worktree隔离",
+      "finding": "仅定义/缺失执行；project.yaml stage.plan加载using-git-worktrees；adapters.py:43是git init -b demo，新仓库，不是现有主仓库worktree。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-24",
+      "source_lines": [
+        43
+      ],
+      "claim": "TDD先测试后代码",
+      "finding": "仅定义；project.yaml stage.implement映射TDD，DemoAdapter没有红绿循环。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-25",
+      "source_lines": [
+        43
+      ],
+      "claim": "写完自己审查",
+      "finding": "部分；固定证据review有实现，无专业语义review。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-26",
+      "source_lines": [
+        25,
+        32,
+        44,
+        47,
+        61
+      ],
+      "claim": "五Agent各不越权，独立裁判",
+      "finding": "部分且表述过强；contracts.py:5-21有角色状态契约，五角色文件存在；同一进程按字符串分配producer，尚无五独立模型/进程/身份权限系统。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-02-27",
+      "source_lines": [
+        45
+      ],
+      "claim": "Rules/Skills不调度、不授权",
+      "finding": "已实现（框架设计边界）；project.py与skill_runtime加载内容；流程由Workflow负责，工具权限由ToolAdapter负责；加载Skill不执行插件hooks/任意命令。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-01",
+      "source_lines": [
+        69
+      ],
+      "claim": "聊天输入需求",
+      "finding": "部分；workbench_service.py:110-124接受requirement字符串，不是完整多轮聊天。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-02",
+      "source_lines": [
+        69
+      ],
+      "claim": "扔文档",
+      "finding": "部分；workbench_store.py:123-165文档导入/版本；工作台上传支持范围需另审，不是任意文件解析。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-03",
+      "source_lines": [
+        69
+      ],
+      "claim": "贴代码",
+      "finding": "部分；requirement可接收文本，非专门代码仓库导入/语义解析。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-04",
+      "source_lines": [
+        70
+      ],
+      "claim": "先澄清，有疑问先问",
+      "finding": "仅定义/缺少交互闭环；Spec提示要求待确认事项（workbench_service.py:120-122），无持续需求问答节点。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-05",
+      "source_lines": [
+        71
+      ],
+      "claim": "出Spec草稿",
+      "finding": "已实现（路径）；真实质量未验证；workbench_service.py:110-145；real调用网关，sandbox固定模板。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-06",
+      "source_lines": [
+        72
+      ],
+      "claim": "人看、驳回后改",
+      "finding": "已实现（保存/审批）；workbench_store.py:243-273带revision保存与审批；workflow.py:103-109显式SHA256+approver；无专门驳回意见循环。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-07",
+      "source_lines": [
+        73
+      ],
+      "claim": "基线锁死",
+      "finding": "已实现（检测/拒绝）；governance.py:51-75独占审批记录、原字节副本、每次比hash；不是文件系统不能改，篡改后会被检测阻断。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-08",
+      "source_lines": [
+        74
+      ],
+      "claim": "开现有仓库Git分支隔离主线",
+      "finding": "缺失（生产流程）；adapters.py:43创建独立demo仓库；无git worktree add/现有主仓库branch操作。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-09",
+      "source_lines": [
+        75
+      ],
+      "claim": "拆真实任务",
+      "finding": "部分；workflow.py:237-239固定TASK-001，无真实需求任务分解。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-10",
+      "source_lines": [
+        75
+      ],
+      "claim": "列验收清单",
+      "finding": "部分；workflow.py:235-241从AC标识生成映射，未解析验收语义。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-11",
+      "source_lines": [
+        76
+      ],
+      "claim": "实现业务代码",
+      "finding": "缺失；workflow.py:231-233 real阻断；adapters.py:51-52只写result.json。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-12",
+      "source_lines": [
+        77
+      ],
+      "claim": "验证业务功能",
+      "finding": "部分；adapters.py:65-86仅value=42受控验证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-13",
+      "source_lines": [
+        78
+      ],
+      "claim": "专业代码审查签字",
+      "finding": "部分；workflow.py:260-271确定性证据审查并写producer；没有真实审查模型签名/代码语义判断。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-14",
+      "source_lines": [
+        79
+      ],
+      "claim": "orchestrator认定结束",
+      "finding": "已实现（受控门禁）；workflow.py:274-281要求review passed、证据合格、Commit一致再accepted。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-15",
+      "source_lines": [
+        80
+      ],
+      "claim": "全部归档",
+      "finding": "已实现（Change目录）；evidence.py:29-51复制source目录并写manifest；不是所有外部聊天/模型/主仓库都纳入。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-16",
+      "source_lines": [
+        67
+      ],
+      "claim": "12步不能跳",
+      "finding": "部分且表述过强；图只有approval→plan→implement→verify→review→archive六节点（workflow.py:52-63）；需求接收/澄清/Spec创建在图外，未强制12独立门禁。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-17",
+      "source_lines": [
+        82
+      ],
+      "claim": "审批人拍板",
+      "finding": "已实现；workflow.py:103-109,212-229；approver是显式字符串，无用户认证证明。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-05-18",
+      "source_lines": [
+        82
+      ],
+      "claim": "最终验收人拍板",
+      "finding": "缺失（当前工作流）；workflow.py:274-281审查后自动accepted，无human-acceptance interrupt/accept API；不能把Spec审批等同最终人工验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-01",
+      "source_lines": [
+        88,
+        95
+      ],
+      "claim": "4份硬规矩全局必须遵守",
+      "finding": "部分/适用范围有误；当前profile=docloop-platform，仅code/verification；.docloop/profiles/docloop-platform.yaml:1-7。enterprise profile才按领域选UI/API（enterprise-vue-java.yaml:1-13）；规则文本不是自动静态检查器。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-02",
+      "source_lines": [
+        90
+      ],
+      "claim": "Vue3/ElementPlus/Java8/MyBatisPlus",
+      "finding": "仅定义且条件启用；enterprise-vue-java.yaml:11-13与rules/enterprise/code-standard.md；当前平台Python，不能说全平台定死企业栈。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-03",
+      "source_lines": [
+        90
+      ],
+      "claim": "命名、分层、注释、禁区",
+      "finding": "仅定义/部分边界；rules/code-standard.md:9-18为原则；agents/review-agent.md:9-15为审查要求；无全量代码合规检查器。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-04",
+      "source_lines": [
+        91
+      ],
+      "claim": "RESTful路径",
+      "finding": "仅定义且原稿绝对化；rules/api-standard.md:94允许保持相邻接口风格、不强制改RESTful；受enterprise/API条件加载。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-05",
+      "source_lines": [
+        91
+      ],
+      "claim": "返回体、错误码、分页",
+      "finding": "仅定义；rules/api-standard.md:18-35规定code/count/data/page/limit；运行时未自动扫描或强制企业项目输出。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-06",
+      "source_lines": [
+        91
+      ],
+      "claim": "鉴权、网关",
+      "finding": "仅定义/不能等于实现；存在规范不代表运行框架已为目标应用生成鉴权网关；Workflow无业务API适配器（231-245）。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-07",
+      "source_lines": [
+        92
+      ],
+      "claim": "铁科蓝/绿",
+      "finding": "仅定义且条件启用；rules/ui-standard.md:3,28-29明确enterprise，当前docloop-platform不加载该UI规则。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-08",
+      "source_lines": [
+        92
+      ],
+      "claim": "组件复用",
+      "finding": "仅定义；ui-standard.md:11-20给组件优先级；无运行时组件生成验证器。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-09",
+      "source_lines": [
+        92
+      ],
+      "claim": "响应式",
+      "finding": "仅定义；ui-standard.md:184起；自动业务浏览器验证未接入。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-10",
+      "source_lines": [
+        92
+      ],
+      "claim": "无障碍保证",
+      "finding": "部分规则/缺少完整定义/未验证；ui-standard.md:74尊重减少动态偏好、190移动端不依赖hover；未见完整键盘/焦点/语义/对比度无障碍条款及自动a11y验收适配器，不能讲保证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-11",
+      "source_lines": [
+        93
+      ],
+      "claim": "evidence格式",
+      "finding": "已实现（核心字段校验）；evidence.py:9-26检查producer/commit/必填项/结果/AC覆盖/阻塞项。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-12",
+      "source_lines": [
+        93
+      ],
+      "claim": "截图、日志",
+      "finding": "部分；workflow.py:264-267检查引用存在；adapters.py:74-85产生日志，没有截图自动采集。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-13",
+      "source_lines": [
+        93
+      ],
+      "claim": "过/不过标准",
+      "finding": "已实现（结构门禁）；evidence.py:17拒绝非passed、23覆盖不足拒绝、25阻塞拒绝；业务语义真实性仍未验证。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-06-14",
+      "source_lines": [
+        95
+      ],
+      "claim": "公司Harness法条自动执行",
+      "finding": "仅定义/来源未验证；规则文本存在，但本审计没有外部公司规范对照，也无自动证明模型遵从机制。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-01",
+      "source_lines": [
+        103
+      ],
+      "claim": "draft→ready",
+      "finding": "已实现；contracts.py:6；workflow.py:242由orchestrator角色推进。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-02",
+      "source_lines": [
+        103
+      ],
+      "claim": "ready→in_progress",
+      "finding": "已实现；contracts.py:7；workflow.py:248。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-03",
+      "source_lines": [
+        103
+      ],
+      "claim": "in_progress→implemented",
+      "finding": "已实现；contracts.py:8；workflow.py:250。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-04",
+      "source_lines": [
+        103
+      ],
+      "claim": "implemented→verified",
+      "finding": "已实现；contracts.py:9；workflow.py:257-258先验证证据。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-05",
+      "source_lines": [
+        103
+      ],
+      "claim": "verified→accepted",
+      "finding": "已实现（受控）；contracts.py:10；workflow.py:274-281审查/证据/commit门禁，但没有最终人工验收节点。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-06",
+      "source_lines": [
+        105
+      ],
+      "claim": "failed不算完成",
+      "finding": "已实现；contracts.py:16终态；evidence.py:17非passed拒绝。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-07",
+      "source_lines": [
+        105
+      ],
+      "claim": "blocked不算完成",
+      "finding": "已实现；workflow.py:60-62提前END，165-178写blocked恢复；evidence.py:17拒绝。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-08",
+      "source_lines": [
+        105
+      ],
+      "claim": "not_run不算完成",
+      "finding": "已实现（证据结果），非任务状态；evidence.py:17拒绝；contracts.py未定义not_run任务状态转换。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-09",
+      "source_lines": [
+        107
+      ],
+      "claim": "连续两轮无进展自动停",
+      "finding": "部分；reliability.py:75-84原语存在，首次设基准，后两次相同progress在第三次repair调用阻塞；src没有repair调用点，未接进业务修复循环。tests/test_reliability.py:34-44只是原语测试。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-10",
+      "source_lines": [
+        107
+      ],
+      "claim": "小毛病最多重试3次",
+      "finding": "已实现（限定异常类型）；reliability.py:57-72仅TimeoutError/ConnectionError，初次+3重试=4次调用；model_gateway.py:74实际使用。业务逻辑错误不重试（tests/test_reliability.py:15）。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-11",
+      "source_lines": [
+        107
+      ],
+      "claim": "任务最多修3轮",
+      "finding": "部分；reliability.py:77-84有计数上限，当前Workflow没有自动repair调用或重实现边。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-12",
+      "source_lines": [],
+      "claim": "LLM预算",
+      "finding": "部分；Reliability.charge支持；Workflow不调LLM；Spec网关自行建Limits(llm=4)（model_gateway.py:40），不是共享项目30次。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-13",
+      "source_lines": [],
+      "claim": "token预算",
+      "finding": "部分；reliability.py:49-55计量；model_gateway.py:67-68仅供应商返回有效total_tokens才charge，不能完整衡量未知usage；非跨阶段统一模型账本。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-14",
+      "source_lines": [],
+      "claim": "工具预算",
+      "finding": "已实现（适配器调用）；adapters.py:24每次ToolAdapter.run charge；不覆盖绕开适配器的任意外部操作。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-15",
+      "source_lines": [],
+      "claim": "模型轮数",
+      "finding": "部分；网关charge model_rounds但自行Limits(model_rounds=4)，Workflow无真实模型循环。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-16",
+      "source_lines": [],
+      "claim": "任务时限",
+      "finding": "部分；reliability.py:43-47在charge/call/repair前后检查；非抢占式取消；阻塞操作依赖其自身timeout。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-17",
+      "source_lines": [],
+      "claim": "运行时限",
+      "finding": "部分；同上；workflow.py:137-150持久化开始时间和预算，恢复不重置。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-18",
+      "source_lines": [],
+      "claim": "并发上限",
+      "finding": "部分；Reliability具计量字段，但未见工作流charge concurrency；execution_lock提供运行锁，不能直接当全局资源并发计量。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-19",
+      "source_lines": [],
+      "claim": "图步数",
+      "finding": "已实现；workflow.py:74 recursion_limit；157逐阶段charge，预算137-150持久化。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-20",
+      "source_lines": [],
+      "claim": "外部熔断",
+      "finding": "部分；reliability.py:60-61有原语；网关使用外部call但每次complete新建Reliability，不能视为跨多次请求持久熔断。",
+      "kind": "supplemental-config"
+    },
+    {
+      "id": "SP-07-21",
+      "source_lines": [
+        107
+      ],
+      "claim": "不会死循环耗着",
+      "finding": "部分；固定LangGraph有上限/END、工具超时；真实自修复Agent loop尚不存在，不能以有限demo证明未来业务循环行为。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-01",
+      "source_lines": [
+        113
+      ],
+      "claim": "所有东西都在项目.docloop",
+      "finding": "有误/部分；配置在项目.docloop，但工作台默认数据根在同级agent-loop-data（workbench.py:297）；runs/inputs/文档数据不全在源仓库.docloop。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-02",
+      "source_lines": [
+        115
+      ],
+      "claim": "agents提示词",
+      "finding": "已实现；五个文件在.docloop/agents；project.py:44-52检查角色集合。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-03",
+      "source_lines": [
+        116
+      ],
+      "claim": "四类rules",
+      "finding": "已实现（文件），有额外enterprise代码规范；.docloop/rules/{code,api,ui,verification}-standard.md及enterprise/code-standard.md；并非只有四个规则文件。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-04",
+      "source_lines": [
+        117
+      ],
+      "claim": "skills现成工具",
+      "finding": "部分；15个专业Skill定义+本地superpowers目录；project.py:10-14,53-68校验契约；不是每个Skill都具真实工具执行实现。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-05",
+      "source_lines": [
+        118
+      ],
+      "claim": "每个Change独立目录",
+      "finding": "已实现；governance.py:27-46限制ID、拒绝目录复用，生成.docloop/changes/id。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-06",
+      "source_lines": [
+        118
+      ],
+      "claim": "Spec",
+      "finding": "已实现；governance.py:43写原文，60基线副本。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-07",
+      "source_lines": [
+        118
+      ],
+      "claim": "决策记录",
+      "finding": "部分；governance.py:44仅初始化No approved decisions yet，未见通用决策自动提取/增量更新器。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-08",
+      "source_lines": [
+        118
+      ],
+      "claim": "任务拆分",
+      "finding": "部分；workflow.py:237-239固定demo任务。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-09",
+      "source_lines": [
+        118
+      ],
+      "claim": "验收清单",
+      "finding": "部分；workflow.py:235-241固定映射表。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-10",
+      "source_lines": [
+        118
+      ],
+      "claim": "测试证据",
+      "finding": "已实现（受控）；workflow.py:255-257；adapters.py:74-86含实际日志、commit。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-11",
+      "source_lines": [
+        118
+      ],
+      "claim": "审查记录",
+      "finding": "已实现（确定性证据审查）；workflow.py:268-271写review.yaml；无语义代码review。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-12",
+      "source_lines": [
+        119
+      ],
+      "claim": "聊天记录",
+      "finding": "缺失（通用多轮聊天）/部分输入记录；governance.py:45-46只记录来源Spec行；workbench_service.py:129保存最终模型输入快照；workbench_store表为documents/specs/runs/audit，无通用会话messages历史。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-13",
+      "source_lines": [
+        119
+      ],
+      "claim": "检查点快照",
+      "finding": "已实现；workflow.py:49-64 SQLite SqliteSaver；137-150预算快照。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-14",
+      "source_lines": [
+        119
+      ],
+      "claim": "执行轨迹",
+      "finding": "已实现（阶段/Skill记录）；workflow.py:191-205 JSONL；工作台读取最多1000条/trace（workbench_service.py:73）。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-15",
+      "source_lines": [
+        119
+      ],
+      "claim": "恢复记录",
+      "finding": "已实现；workflow.py:165-178保存失败节点/指纹/预算/diff/下一步；118-135需人工recover，不自动唤醒。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-16",
+      "source_lines": [
+        121
+      ],
+      "claim": "验收后归档文档/变更记录",
+      "finding": "已实现（受控accepted）；evidence.py:29-51含hash manifest、staging rename、防覆盖；“验收”不是人工最终验收，工作台归档在独立run root下。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-17",
+      "source_lines": [
+        121
+      ],
+      "claim": "业务代码在src",
+      "finding": "部分/目标未实现；框架Python代码确在src/docloop；demo产物实际在.docloop/sessions/id/result.json（workflow.py:245），不是生成业务src。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-18",
+      "source_lines": [
+        121
+      ],
+      "claim": "用Git管理",
+      "finding": "已实现（demo真实提交）；adapters.py:43-57 git init/add/commit/rev-parse；不是目标主仓库集成/PR。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-19",
+      "source_lines": [
+        123
+      ],
+      "claim": "从原话追到需求",
+      "finding": "部分；sources.json带原始Spec行（governance.py:45-46）；工作台references有资料版本与行（store.py:184-205）；不等于所有历史聊天都保留。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-20",
+      "source_lines": [
+        123
+      ],
+      "claim": "REQ→AC→TASK→TC→V",
+      "finding": "部分；workflow.py:235-241只生成AC→TASK→TC→V；未强制REQ解析或REQ覆盖，TaskContext无这类关联结构。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-21",
+      "source_lines": [
+        123
+      ],
+      "claim": "追到哪行代码",
+      "finding": "缺失（自动行级关联）；evidence.py只关联AC/TC/Commit，DemoAdapter未记录需求→源码路径/行映射。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-22",
+      "source_lines": [
+        123
+      ],
+      "claim": "追到哪个Commit",
+      "finding": "已实现（受控）；adapters.py:71,78与89-97核对HEAD和洁净工作区；evidence.py:12要求SHA字段。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-23",
+      "source_lines": [
+        123
+      ],
+      "claim": "追到哪份测试报告",
+      "finding": "已实现（受控路径）；workflow.py:255固定evidence.yaml，引用日志且review校验其在change内存在（264-267）。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-08-24",
+      "source_lines": [
+        123
+      ],
+      "claim": "三个月后完整可追溯",
+      "finding": "部分/时间跨度未验证；归档hash/SQLite/JSONL具备持久化机制，未做三个月保存/备份/迁移/外部模型真实性验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-01",
+      "source_lines": [
+        131,
+        138
+      ],
+      "claim": "VSCode 写代码、直接打开、提交/分支/diff",
+      "finding": "部分；源码文件可由编辑器打开，但无 VSCode 集成实现。`adapters.py:43-57,89-96` 是受控独立 Git 仓库提交和洁净检查；不是用户业务仓库的 Worktree/IDE 工作流。`workbench-acceptance.md:35` 明列真实业务 Worktree 待实现。稿件需修订。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-02",
+      "source_lines": [
+        132
+      ],
+      "claim": "本地3000端口看记录",
+      "finding": "部分；本地工作台及记录存在 `workbench.py:181-183,252-267`，默认端口实际8765（同文件290行、`cli.py:28`）。3000需改8765或明确另行配置。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-03",
+      "source_lines": [
+        136
+      ],
+      "claim": "聊天框追问、改主意",
+      "finding": "缺失；`workbench_static/index.html:1` 明示“提交将新建任务，不会修改当前任务”；`workbench.py:177-195` 仅创建/编辑/审批Spec和运行API，无会话消息/追问API。生成器 `workbench_service.py:110-145` 单次草稿，不能称持续聊天。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-04",
+      "source_lines": [
+        137
+      ],
+      "claim": "看改文件、测试、文档",
+      "finding": "部分；`workbench_service.py:40-108` 显示实际阶段、Skill加载、检查与产物，但仅受控沙箱 result.json、tasks/checkList/evidence/review；非业务 diff/真实业务测试。`tests/test_workbench_service.py:58` 起测试执行区，未证明业务编码。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-05",
+      "source_lines": [
+        139
+      ],
+      "claim": "说“停”立即刹车、“改成XX”改变运行",
+      "finding": "缺失；无任务取消/自然语言控制API（`workbench.py:157-210`完整路由）；`shutdown:149-155` 是停止整个服务，`contracts.py:18` 有 cancelled 状态也不构成叫停入口。必须删除即时承诺。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-01",
+      "source_lines": [
+        147
+      ],
+      "claim": "解析文档",
+      "finding": "部分；`.docloop/skills/document-parser/SKILL.md:2-3` 定义；`workbench_store.py:123-128` 只接受UTF-8 md/txt、2MiB；非多格式解析。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-02",
+      "source_lines": [
+        147
+      ],
+      "claim": "生成spec",
+      "finding": "部分；`spec-create/SKILL.md:2-3`；`workbench_service.py:118-145` 可组装本地输入、固定沙箱草稿或调用已配置网关；真实生成效果未验证，未持续澄清。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-03",
+      "source_lines": [
+        147
+      ],
+      "claim": "拆任务",
+      "finding": "部分；`plan-create/SKILL.md:2-3`；`workflow.py:231-239` 固定TASK-001，不是实际业务拆解。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-04",
+      "source_lines": [
+        147
+      ],
+      "claim": "验收清单",
+      "finding": "部分；`checklist-create/SKILL.md:2-3`；`workflow.py:235-241` 按AC编号生成表，未生成业务测试。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-05",
+      "source_lines": [
+        147
+      ],
+      "claim": "项目初始化",
+      "finding": "部分；`project-bootstrap/SKILL.md:2-3`；`adapters.py:43-50` 只初始化demo仓库，无真实Worktree适配。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-06",
+      "source_lines": [
+        147
+      ],
+      "claim": "跑测试",
+      "finding": "部分；`test-runner/SKILL.md:2-3`；`adapters.py:65-86` 只检查value=42。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-07",
+      "source_lines": [
+        147
+      ],
+      "claim": "审计日志",
+      "finding": "满足（框架记录）；`audit-recorder/SKILL.md:2-3`；`workflow.py:193-205` 实际记录阶段、状态、Skill指纹。不能扩为业务导出审计。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-08",
+      "source_lines": [
+        147
+      ],
+      "claim": "卡壳诊断",
+      "finding": "部分；`recovery-diagnosis/SKILL.md:2-3`；`workflow.py:165-178` 保存阻塞、错误指纹与下一步；无真实模型分析证明。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-09",
+      "source_lines": [
+        147
+      ],
+      "claim": "归档",
+      "finding": "满足（受控产物）；`project-archiving/SKILL.md:2-3`；`workflow.py:274-281`、`tests/test_workflow.py:20-30` 定义验证归档门禁；非业务全套交付。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-10",
+      "source_lines": [
+        149
+      ],
+      "claim": "Vue组件生成",
+      "finding": "未验证；`component-generator/SKILL.md:2-3` 定义，真实coding未配置 `project.yaml:59-64`；`workflow.py:231-233` blocked。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-11",
+      "source_lines": [
+        149
+      ],
+      "claim": "Java接口生成",
+      "finding": "未验证；`api-contract/SKILL.md:2-3` 只定义API契约和前端封装，不能等同Java接口生成；Java后端生成定义对应 `backend-code-generator/SKILL.md:2-3`，同上无真实Java生成适配。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-12",
+      "source_lines": [
+        149
+      ],
+      "claim": "MyBatis Plus CRUD",
+      "finding": "未验证；`backend-code-generator/SKILL.md:2-3`、enterprise Profile stack定义；同上无业务执行。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-13",
+      "source_lines": [
+        149
+      ],
+      "claim": "铁科蓝页面",
+      "finding": "未验证；`frontend-design/SKILL.md:2-3` 及UI Rules是规则内容；默认Profile `project.yaml:2` 为docloop-platform，当前工作台原生HTML/JS/CSS，不是企业Vue应用。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-14",
+      "source_lines": [
+        149
+      ],
+      "claim": "前端质量检查",
+      "finding": "未验证；`frontend-quality-check/SKILL.md:2-3` 定义；`project.yaml:61` browser=null；真实企业检查未执行。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-15",
+      "source_lines": [
+        149
+      ],
+      "claim": "等保三级/国密检查",
+      "finding": "未验证；`security-check/SKILL.md:2-3` 是范围明确的审查定义，不是认证/自动合规证明。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-16",
+      "source_lines": [
+        149
+      ],
+      "claim": "复用解析",
+      "finding": "部分；共享document-parser，支持范围同147行，不应重复算唯一Skill。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-10-17",
+      "source_lines": [
+        151
+      ],
+      "claim": "直接插入新工具、不影响整体流程",
+      "finding": "部分；`workbench_service.py:168-175` 枚举磁盘Skill；`skill_runtime.py:28-41,87-98,107-116` 仍校验路由、命名、frontmatter，阶段需配置。应称可按规范扩展，需验证，不能保证无影响。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-01",
+      "source_lines": [
+        159
+      ],
+      "claim": "飞书输入",
+      "finding": "缺失；`workbench.py:157-210` 无飞书路由/连接器；只本地API。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-02",
+      "source_lines": [
+        159,
+        163
+      ],
+      "claim": "理解PM随意需求并生成用户故事",
+      "finding": "未验证；`workbench_service.py:130-134` 仅具备通用网关调用；135-144沙箱无语义分析。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-03",
+      "source_lines": [
+        159,
+        164
+      ],
+      "claim": "日期范围筛选",
+      "finding": "缺失；`workflow.py:237-239`、`adapters.py:51-52` 只固定JSON。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-04",
+      "source_lines": [
+        159,
+        164
+      ],
+      "claim": "点导出生成文件并下载",
+      "finding": "缺失；`workbench.py:157-210` 无业务导出/下载接口，`adapters.py:51-52` 产物仅JSON。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-05",
+      "source_lines": [
+        159
+      ],
+      "claim": "标准xlsx而非CSV",
+      "finding": "缺失；同上无xlsx序列化或业务测试。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-06",
+      "source_lines": [
+        165
+      ],
+      "claim": "工单号字段",
+      "finding": "缺失；`adapters.py:51-52` 只有mode/value。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-07",
+      "source_lines": [
+        165
+      ],
+      "claim": "客户字段",
+      "finding": "缺失；同上。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-08",
+      "source_lines": [
+        165
+      ],
+      "claim": "金额字段",
+      "finding": "缺失；同上。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-09",
+      "source_lines": [
+        159,
+        165
+      ],
+      "claim": "导出人字段",
+      "finding": "缺失；同上，审批人不是导出人。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-10",
+      "source_lines": [
+        159,
+        165
+      ],
+      "claim": "导出时间字段",
+      "finding": "缺失；同上，审批时间不是导出时间。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-11",
+      "source_lines": [
+        159,
+        166
+      ],
+      "claim": "按角色控权限、无权不见按钮",
+      "finding": "缺失；`workbench.py:94-108` 本机/来源/会话防护不等于业务RBAC。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-12",
+      "source_lines": [
+        159,
+        167
+      ],
+      "claim": "历史数据、一年前可导",
+      "finding": "缺失；固定JSON，无工单历史查询。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-13",
+      "source_lines": [
+        167
+      ],
+      "claim": "单次10000条",
+      "finding": "缺失；无工单数量规则及边界测试；固定JSON不能证明。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-14",
+      "source_lines": [
+        167
+      ],
+      "claim": "超量提示分批",
+      "finding": "缺失；同上。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-15",
+      "source_lines": [
+        167
+      ],
+      "claim": "失败能重试",
+      "finding": "缺失（业务）；`reliability.py:57-72` 仅通用瞬态Timeout/ConnectionError重试，不是xlsx导出重试。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-16",
+      "source_lines": [
+        167
+      ],
+      "claim": "导出审计",
+      "finding": "缺失（业务）；`workflow.py:199-205` 工作流记录不等于导出审计。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-11-17",
+      "source_lines": [
+        167,
+        169
+      ],
+      "claim": "自动把模糊需求变为可验收细则",
+      "finding": "稿件需修订；163行“对账”目的、165行工单号/客户/金额字段，以及一年/10000/重试/审计并非159行明确要求，不能默认为已确认业务事实；`workbench_service.py:120-122,140` 明确禁止臆造缺失事实。应列“待确认建议”。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-01",
+      "source_lines": [
+        177
+      ],
+      "claim": "锁定Spec、任务、证据、审查文件",
+      "finding": "满足（框架/受控）；`governance.py:51-74`、`workflow.py:237-241,252-281`；不能冠以工单实战完成。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-02",
+      "source_lines": [
+        177
+      ],
+      "claim": "src中Vue3+ElementPlus、SpringBoot+MyBatisPlus业务实现",
+      "finding": "缺失；当前`src/docloop/workbench_static/index.html:1` 原生HTML，`project.yaml:4-7` Python/LangGraph；企业技术栈仅`.docloop/profiles/enterprise-vue-java.yaml:13-15`配置意图。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-03",
+      "source_lines": [
+        177
+      ],
+      "claim": "功能与测试两个Git提交",
+      "finding": "未验证/稿件需修订；未提供业务Commit IDs；`adapters.py:43-57` 仅固定产物单个提交。不能用本仓库开发提交冒充工单提交。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-04",
+      "source_lines": [
+        177,
+        191,
+        195
+      ],
+      "claim": "47个用例全过",
+      "finding": "未验证/稿件需修订；无该工单测试列表/日志/Commit关联；已有`.docloop/docs/workbench-acceptance.md:9-10` 记录61单测+1浏览器，属于框架历史检查，不能替代本轮记录或工单47项证据；本轮63项框架测试见统一验证结果。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-05",
+      "source_lines": [
+        177,
+        191,
+        195
+      ],
+      "claim": "覆盖率82%",
+      "finding": "未验证/稿件需修订；无覆盖率命令、报告、分母与业务Commit证据；`adapters.py:65-86` 没有覆盖率采集。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-06",
+      "source_lines": [
+        179
+      ],
+      "claim": "LangGraph调度",
+      "finding": "满足；`workflow.py:12-14,52-64` 实际编译持久化状态图。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-07",
+      "source_lines": [
+        179
+      ],
+      "claim": "按Superpowers TDD写",
+      "finding": "部分；`project.yaml:30-34` 加载TDD/验证Skill，`skill_runtime.py:141` model_invoked=false；不能证明运行时模型执行TDD。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-08",
+      "source_lines": [
+        179
+      ],
+      "claim": "Vue3/Java8",
+      "finding": "部分；企业Profile定义，当前框架是Python，未生成该工单企业代码。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-09",
+      "source_lines": [
+        179
+      ],
+      "claim": "Playwright浏览器测试",
+      "finding": "部分；`tests/acceptance/test_workbench_browser.py` 是工作台测试，已有验收记录10行；`project.yaml:61` 运行时browser未配置，不代表自动测生成业务。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-10",
+      "source_lines": [
+        179
+      ],
+      "claim": "Git Worktree隔离",
+      "finding": "缺失（真实执行）；`project.yaml:26` 是Skill路由；`adapters.py:43` git init不是git worktree；已有验收记录35行明确待实现。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-11",
+      "source_lines": [
+        179
+      ],
+      "claim": "模型DeepSeek Flash、随时换",
+      "finding": "未验证/部分；`model_gateway.py:23,48-50` 可配置模型名与Chat Completions网关；无已配置该模型/真实推理证据，`project.yaml:60` model=null。换模型还受供应商兼容性约束。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-12",
+      "source_lines": [
+        181
+      ],
+      "claim": "自动重试3次",
+      "finding": "部分；`reliability.py:57-72` 仅瞬态网络/超时最多3次重试（含首次共4次），不能泛化一切失败。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-13",
+      "source_lines": [
+        181
+      ],
+      "claim": "换思路、拆小步",
+      "finding": "缺失；`workflow.py:165-178` 捕获后写blocked恢复记录；无模型重规划/自动小步修复执行。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-14",
+      "source_lines": [
+        181
+      ],
+      "claim": "两轮无进展自动停",
+      "finding": "部分；`reliability.py:75-84` 有repair进展计数；当前`workflow.py`没有调用repair，不能宣称业务循环已集成。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-12-15",
+      "source_lines": [
+        181
+      ],
+      "claim": "恢复记录等人决定",
+      "finding": "满足（框架）；`workflow.py:165-178` 写恢复记录，`resume:111-121` 限制blocked直接恢复；不等于可无条件续跑。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-01",
+      "source_lines": [
+        189
+      ],
+      "claim": "需求文档第二版补边界异常",
+      "finding": "缺失/稿件需修订；无工单v2；`governance.py:55-60,73-74` 基线不覆盖，需求变化应新Change审批，不应暗示直接改已锁Spec。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-02",
+      "source_lines": [
+        190
+      ],
+      "claim": "技术设计、接口、表结构、导出逻辑文档",
+      "finding": "缺失（工单）；`workbench_service.py:94-104` 产物枚举不含工单技术设计；固定JSON不能代替。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-03",
+      "source_lines": [
+        192
+      ],
+      "claim": "自动变更记录及原因",
+      "finding": "部分；`workflow.py:199-205` 状态trace存在，未生成工单逐文件原因说明；`evidence.py:29`起归档是复制产物而非自动语义changelog。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-04",
+      "source_lines": [
+        193
+      ],
+      "claim": "验收清单逐项打勾交PM",
+      "finding": "部分；`workflow.py:235-241` 追踪表存在，但固定value=42不得作为每个业务条件通过；无工单PM真实验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-05",
+      "source_lines": [
+        195
+      ],
+      "claim": "PR已提等review",
+      "finding": "未验证/稿件需修订；无PR URL、远程目标或关联Commit；`adapters.py:43-57` 无push/PR创建动作。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-06",
+      "source_lines": [
+        195
+      ],
+      "claim": "人两天、Agent40分钟",
+      "finding": "未验证/稿件需修订；无起止时间、相同范围/质量的人类基线、人工干预统计。预算600/3600秒（`reliability.py:20-21`）不是40分钟耗时证据。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-13-07",
+      "source_lines": [
+        197
+      ],
+      "claim": "一个PR包含代码测试文档全部交付",
+      "finding": "缺失（该实战）；无PR及工单交付，受控归档只能证明受控材料。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-01",
+      "source_lines": [
+        205
+      ],
+      "claim": "ChatGPT/Cursor只能打字、Devin仅任务描述，本方多输入",
+      "finding": "稿件需修订；无竞品可比证据；本方 `workbench_store.py:123-128` 只md/txt及文本，本方不支持任意文件解析。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-02",
+      "source_lines": [
+        206
+      ],
+      "claim": "别的都不能整理文档、我们自动spec",
+      "finding": "稿件需修订；无可比证据；本方沙箱固定草稿，真实模型效果未验证 `workbench_service.py:130-144`。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-03",
+      "source_lines": [
+        207
+      ],
+      "claim": "关窗就忘/记录翻不到/日志散，本方自动changelog和更新文档",
+      "finding": "稿件需修订；无可比证据；本方持久化与trace存在 `workflow.py:49-64,199-205`，但不等于自动业务文档更新。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-04",
+      "source_lines": [
+        208
+      ],
+      "claim": "别的根本不能公司项目，本方对接内网Git/轻骑兵",
+      "finding": "缺失/稿件需修订；无可比证据；`project.yaml:57-64` 权限空、coding null，受控git init不是内网仓库接入；无轻骑兵实际连接验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-05",
+      "source_lines": [
+        209
+      ],
+      "claim": "别的无需求锁定，本方SHA256谁也改不了",
+      "finding": "部分/稿件需修订；`governance.py:51-74` 是应用校验与拒绝覆盖，不是OS只读/防管理员改写；无竞品可比证据。改“按Hash校验，发现偏离拒绝推进”。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-14-06",
+      "source_lines": [
+        210
+      ],
+      "claim": "别的无本地台，本方3000/VSCode",
+      "finding": "部分/稿件需修订；无可比证据；本方默认8765 `workbench.py:252,290`，无专用VSCode插件。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-01",
+      "source_lines": [
+        218
+      ],
+      "claim": "1上传需求",
+      "finding": "满足（限定md/txt、2MiB）；`workbench.py:161-166`、`workbench_store.py:123-128`。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-02",
+      "source_lines": [
+        218
+      ],
+      "claim": "2聊天问清楚",
+      "finding": "缺失；无持续会话入口；`workbench_service.py:110-145` 单次草稿与待确认事项。改“生成草稿，人工编辑待确认项”。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-03",
+      "source_lines": [
+        218
+      ],
+      "claim": "3人审Spec",
+      "finding": "满足；`workbench.py:185-191` 保存审批，`governance.py:51-74` Hash绑定。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-04",
+      "source_lines": [
+        218
+      ],
+      "claim": "4自己实现和验证",
+      "finding": "部分（受控流程）；`workbench_service.py:147-165` 强制demo，`adapters.py:40-86` 固定JSON。真实业务缺失。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-05",
+      "source_lines": [
+        218
+      ],
+      "claim": "5人验收",
+      "finding": "部分；当前图`workflow.py:274-281` 验证审查后自动accepted，只有前置Spec审批interrupt（213行），无独立最终人验收暂停/API。不能把沙箱accepted当PM验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-06",
+      "source_lines": [
+        218
+      ],
+      "claim": "6归档",
+      "finding": "满足（受控）；`workflow.py:274-281` 与`tests/test_workflow.py:20-30`；若指真实工单归档则缺失。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-07",
+      "source_lines": [
+        220
+      ],
+      "claim": "人只做3件，中间全自动编码测试审查",
+      "finding": "缺失（真实业务）；real模式在plan被blocked `workflow.py:231-233`，review为确定性演示 `workflow.py:269-270`。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-08",
+      "source_lines": [
+        222
+      ],
+      "claim": "文档先行",
+      "finding": "部分；Spec审批链存在，实际业务文档生成未实现。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-09",
+      "source_lines": [
+        222
+      ],
+      "claim": "基线锁死",
+      "finding": "部分；精确Hash检测拒绝推进，非物理不可修改 `governance.py:66-74`。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-10",
+      "source_lines": [
+        222
+      ],
+      "claim": "人拍板",
+      "finding": "部分；人审Spec存在，最后人工验收未接入当前图。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-15-11",
+      "source_lines": [
+        222
+      ],
+      "claim": "全程能查",
+      "finding": "部分；已实现阶段、输入Hash、受控Commit、证据归档，真实业务未执行则不存在对应业务追踪；`workbench_service.py:107` UI还有最近20次运行/100条审计显示范围。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-META-01",
+      "source_lines": [
+        3
+      ],
+      "claim": "15页、演讲12—15分钟及动作提示",
+      "finding": "非产品功能；15页结构已核对，实际演讲时长未计时，不当成功能验收。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-13",
+      "source_lines": [
+        13
+      ],
+      "claim": "其他AI写完不留记录、关窗遗忘",
+      "finding": "稿件需修订；没有同版本、同任务的竞品对照证据，不应把场景铺垫当外部产品事实。与SP-14系列同口径。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-01-14",
+      "source_lines": [
+        9
+      ],
+      "claim": "项目名DocLoop Agent",
+      "finding": "满足（命名）；pyproject.toml:2及workbench_static/index.html:1，产品名称可核对。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-07-22",
+      "source_lines": [
+        101
+      ],
+      "claim": "每个任务都有状态、不能装完成",
+      "finding": "部分；contracts.py:5-21有状态契约，工作台任务用Spec和最近受控运行映射；不是独立的完整业务任务运行器。详见SP-07各项。",
+      "kind": "speech"
+    },
+    {
+      "id": "SP-09-06",
+      "source_lines": [
+        129
+      ],
+      "claim": "不用学新东西、两边都能用",
+      "finding": "体验性承诺未验证；本地浏览器可用、源码可在VSCode打开，但无用户学习成本/可用性研究，不能承诺零学习成本。",
+      "kind": "speech"
+    }
+  ],
+  "source_coverage": [
+    {
+      "line": 1,
+      "page": 0,
+      "classification": "structure",
+      "text_sha256": "3a234e0c5eeeb89671344f623dbab5d8dcc81691749a6a7c8d4ef37996faa190",
+      "audit_ids": []
+    },
+    {
+      "line": 3,
+      "page": 0,
+      "classification": "audited",
+      "text_sha256": "3730aa1d2cf98bc82001a5d243bfedb37fd2429d31c0a392c599f609573a5809",
+      "audit_ids": [
+        "SP-META-01"
+      ]
+    },
+    {
+      "line": 5,
+      "page": 0,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 7,
+      "page": 1,
+      "classification": "structure",
+      "text_sha256": "83fab2a44688de55103f74a88bacdb9689c0bb6d6cce83cadcc120f7b3b29ddf",
+      "audit_ids": []
+    },
+    {
+      "line": 9,
+      "page": 1,
+      "classification": "audited",
+      "text_sha256": "57addd8d040e011db85516abe08f910e2812e99059b4543589b5880d97fc5f7b",
+      "audit_ids": [
+        "SP-01-14"
+      ]
+    },
+    {
+      "line": 11,
+      "page": 1,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "8d14ca20449d7d67978003c545b5ac4088558d059b1753ebce2058b90cc17b68",
+      "audit_ids": []
+    },
+    {
+      "line": 13,
+      "page": 1,
+      "classification": "audited",
+      "text_sha256": "a07a1af374dbcb9b67ea6496480733c0c1fd536b63b251396c42f65c94c3ed51",
+      "audit_ids": [
+        "SP-01-13"
+      ]
+    },
+    {
+      "line": 15,
+      "page": 1,
+      "classification": "audited",
+      "text_sha256": "9849b9a572742bdec64c20f825b8a1dec32dcbeb4a2d6dfdbbe96b016fd6cae2",
+      "audit_ids": [
+        "SP-01-01",
+        "SP-01-02",
+        "SP-01-03",
+        "SP-01-04",
+        "SP-01-05",
+        "SP-01-06",
+        "SP-01-07",
+        "SP-01-08",
+        "SP-01-09",
+        "SP-01-10",
+        "SP-01-11"
+      ]
+    },
+    {
+      "line": 17,
+      "page": 1,
+      "classification": "audited",
+      "text_sha256": "644477ed79e59a3ce116c40d07cc62e40b21ecc7a21e25ce51b9cd2150d427a7",
+      "audit_ids": [
+        "SP-01-12"
+      ]
+    },
+    {
+      "line": 19,
+      "page": 1,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 21,
+      "page": 2,
+      "classification": "structure",
+      "text_sha256": "0ce54bd4482be2eba979fdb5221836ace2ea569566f59960b6dadad0175d7563",
+      "audit_ids": []
+    },
+    {
+      "line": 23,
+      "page": 2,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "f9eda941786fb628481c34b9b288a1b0bed89088c87409f7fa8ac9e1d68a735f",
+      "audit_ids": []
+    },
+    {
+      "line": 25,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "fe8ea223465666d860b9247c7bbf8991eb0b3499c7e30bd942f89b1b7cd2ad48",
+      "audit_ids": [
+        "SP-02-26"
+      ]
+    },
+    {
+      "line": 27,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "e9acb81df6ce5b7493d494524ca6045294617026bd0a2c65a9d337a0a52fb113",
+      "audit_ids": [
+        "SP-02-01"
+      ]
+    },
+    {
+      "line": 28,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "ae7b129f3cee7907731ae8987c8e7d417e53b06c26c60a1da3d3fe2894b2eeed",
+      "audit_ids": [
+        "SP-02-02",
+        "SP-02-04",
+        "SP-02-07",
+        "SP-02-13"
+      ]
+    },
+    {
+      "line": 29,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "3c56670a0aca4f3c5457c5d7397b2fbaa947a0f36ded7481c12bd9a87bcfdc5b",
+      "audit_ids": [
+        "SP-02-17",
+        "SP-02-18",
+        "SP-02-19"
+      ]
+    },
+    {
+      "line": 30,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "c4c3eb8b6c5db5bdc4c922a9e2400aa39e1fda3f025dd4caeeb01c89330966a2",
+      "audit_ids": [
+        "SP-02-21"
+      ]
+    },
+    {
+      "line": 32,
+      "page": 2,
+      "classification": "audited",
+      "text_sha256": "3d9176263b24844355daf6a05354741cffb99525b72571a6a35be692e103f13f",
+      "audit_ids": [
+        "SP-02-26"
+      ]
+    },
+    {
+      "line": 34,
+      "page": 2,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 36,
+      "page": 3,
+      "classification": "structure",
+      "text_sha256": "c175ac32090405e559870a02045dfa1d86d606eb0f5e899938a136248f61b27e",
+      "audit_ids": []
+    },
+    {
+      "line": 38,
+      "page": 3,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "fe4ee430ce5fab8f8596d8ceb6afbb86aea76da15e04faef394bbee592ec99be",
+      "audit_ids": []
+    },
+    {
+      "line": 40,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "712fdb34c6b8d285ae21ceb7cdfc7fdc0314ae24d9ca6b89355505714dfe0818",
+      "audit_ids": [
+        "SP-02-17"
+      ]
+    },
+    {
+      "line": 41,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "0fdc7ebe3c6609c05f302ca3a52fa0fd10250b322f3db6e5729958d1218b2aa1",
+      "audit_ids": [
+        "SP-02-18"
+      ]
+    },
+    {
+      "line": 42,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "3443f99419d6706b78f69c0493aa7b300420f1981d637e09aad7a09a900ba22e",
+      "audit_ids": [
+        "SP-02-19",
+        "SP-02-20"
+      ]
+    },
+    {
+      "line": 43,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "ee25c798f3da0b074de0aa1070838d0b409e6517fb8f2156ea31961ec4e18108",
+      "audit_ids": [
+        "SP-02-22",
+        "SP-02-23",
+        "SP-02-24",
+        "SP-02-25"
+      ]
+    },
+    {
+      "line": 44,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "6504b9258b9cc6e8bebde908de9fa466dfa53006c9bfb1980231286ce078749a",
+      "audit_ids": [
+        "SP-02-26"
+      ]
+    },
+    {
+      "line": 45,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "2280546ab0159b33a60a53b58f9d8e5f76dd9451e99d2a42defc274b94a580b1",
+      "audit_ids": [
+        "SP-02-21",
+        "SP-02-27"
+      ]
+    },
+    {
+      "line": 47,
+      "page": 3,
+      "classification": "audited",
+      "text_sha256": "c762a71a837d0dbe05aaa5ff44c41a2d484e6de477bb5c1222d046eef6ac42d0",
+      "audit_ids": [
+        "SP-02-26"
+      ]
+    },
+    {
+      "line": 49,
+      "page": 3,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 51,
+      "page": 4,
+      "classification": "structure",
+      "text_sha256": "915f8ff497d6cde3a6c3234212d4389e88a36780c1dac90208868c845fdb0e48",
+      "audit_ids": []
+    },
+    {
+      "line": 53,
+      "page": 4,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "667daf77aed6daafb55dd536519306d72acc6dabf7d17c235346d5d5e0aa81ed",
+      "audit_ids": []
+    },
+    {
+      "line": 55,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "4a83dddf143389d6a317e6bfe5cdc6782273ed43f8ef5fddfd18160c58a900d4",
+      "audit_ids": [
+        "SP-02-01"
+      ]
+    },
+    {
+      "line": 56,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "325ecff84a00f863ccbb74bcc805a6b1e6061c53af1ecc079de737666f5eb321",
+      "audit_ids": [
+        "SP-02-02",
+        "SP-02-03"
+      ]
+    },
+    {
+      "line": 57,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "866e201be722dd1b1cb720eeed922ef27d64c16d41d03f1209191041d01bcb05",
+      "audit_ids": [
+        "SP-02-04",
+        "SP-02-05",
+        "SP-02-06"
+      ]
+    },
+    {
+      "line": 58,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "b5d3702d0d3f7c1ddf5cb3e4d444cc6f74419f1a8e150cb543e1eb190f81e18a",
+      "audit_ids": [
+        "SP-02-07",
+        "SP-02-08",
+        "SP-02-09",
+        "SP-02-10",
+        "SP-02-11",
+        "SP-02-12"
+      ]
+    },
+    {
+      "line": 59,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "c54a0043f5c4fd7e058330e8050f24e0f0d9d1315116e109ebaa75b1e015af55",
+      "audit_ids": [
+        "SP-02-13",
+        "SP-02-14",
+        "SP-02-15",
+        "SP-02-16"
+      ]
+    },
+    {
+      "line": 61,
+      "page": 4,
+      "classification": "audited",
+      "text_sha256": "b0f74b9c1b1a1bc930d346f5dec9f8cebd05c51709188f46222f686abd09b3ba",
+      "audit_ids": [
+        "SP-02-26"
+      ]
+    },
+    {
+      "line": 63,
+      "page": 4,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 65,
+      "page": 5,
+      "classification": "structure",
+      "text_sha256": "de07a12a3a1cfa47e06ab1f2c9fb9321d52673073d1b974b2d006062c5d8a41a",
+      "audit_ids": []
+    },
+    {
+      "line": 67,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "6c5337bf0d327d94e4a0b3e7260ee373502f7e92dc66312dd452d7ade904a630",
+      "audit_ids": [
+        "SP-05-16"
+      ]
+    },
+    {
+      "line": 69,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "e42ab9b9fa1bb77fe89c1339324aca6bcc0824429c9a10f628116c9aaa358ed6",
+      "audit_ids": [
+        "SP-05-01",
+        "SP-05-02",
+        "SP-05-03"
+      ]
+    },
+    {
+      "line": 70,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "eec83b16d3386eec0c5ccc3c3f89a287d54ca1da73d50fbffce8bc379889587e",
+      "audit_ids": [
+        "SP-05-04"
+      ]
+    },
+    {
+      "line": 71,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "882812667916ea9e0a60f54571e61b4cbf0c857eb45364ad3c46fee8c95a0d05",
+      "audit_ids": [
+        "SP-05-05"
+      ]
+    },
+    {
+      "line": 72,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "54871bea5ebfb3d17fdd5911a99e16d3d97f98ec971cbe84786597be315151e8",
+      "audit_ids": [
+        "SP-05-06"
+      ]
+    },
+    {
+      "line": 73,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "8111ac4f2e7cbe57576f5a78bc2ce63068744c1003c167693f391cafcce0fc92",
+      "audit_ids": [
+        "SP-05-07"
+      ]
+    },
+    {
+      "line": 74,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "84aeec48f13cf004f21cb8f9d1b53e391354b532fddfc69530bff849b7aa82f4",
+      "audit_ids": [
+        "SP-05-08"
+      ]
+    },
+    {
+      "line": 75,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "fa8ebd10948411c93997b83d76ef3b24e6de61b4791096142c4ba4eaeb93d640",
+      "audit_ids": [
+        "SP-05-09",
+        "SP-05-10"
+      ]
+    },
+    {
+      "line": 76,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "9c36652ee754fdd4fe06c1cea9c1a4746e0044bb406b747f25731acfd1623970",
+      "audit_ids": [
+        "SP-05-11"
+      ]
+    },
+    {
+      "line": 77,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "4d5d566f5670451c314eebd64d37a66bd3607a771875bc027307876a9acbb8cd",
+      "audit_ids": [
+        "SP-05-12"
+      ]
+    },
+    {
+      "line": 78,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "86f3b5a4123b018bb62d964ef6222580f950d423884b9ff852124d5b6f97a91d",
+      "audit_ids": [
+        "SP-05-13"
+      ]
+    },
+    {
+      "line": 79,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "1bd8a1f7fd94d47ba9f8d5f0bf8e5941088fb2a4874f99d1cef5b57c0a4af2fa",
+      "audit_ids": [
+        "SP-05-14"
+      ]
+    },
+    {
+      "line": 80,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "9b45bd78701a594324cac72a891a5e6d7e396585eb6fb3e0bedad77ea60ab202",
+      "audit_ids": [
+        "SP-05-15"
+      ]
+    },
+    {
+      "line": 82,
+      "page": 5,
+      "classification": "audited",
+      "text_sha256": "8d716fd8f4518365dc1fe5ee0bcf01b90b88101bf2d85f86a40b2c955a281f4e",
+      "audit_ids": [
+        "SP-05-17",
+        "SP-05-18"
+      ]
+    },
+    {
+      "line": 84,
+      "page": 5,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 86,
+      "page": 6,
+      "classification": "structure",
+      "text_sha256": "3ee4f45ac85dba1b2aa6574a62f39f830b1093f1ed869705acaa8e314c1ce7e3",
+      "audit_ids": []
+    },
+    {
+      "line": 88,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "5b237486a9c27c3ef18b52c48895102e112feff3cdf3e37cf1796eea6b87f9d5",
+      "audit_ids": [
+        "SP-06-01"
+      ]
+    },
+    {
+      "line": 90,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "47bcc4959088cb59b8bf071f5fce8504e200a8e3bf1dc08921e6eeaa2a6fed07",
+      "audit_ids": [
+        "SP-06-02",
+        "SP-06-03"
+      ]
+    },
+    {
+      "line": 91,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "80570fd6c932365cee4e036dab1e4d804e0fa5471748134a1f22666125119927",
+      "audit_ids": [
+        "SP-06-04",
+        "SP-06-05",
+        "SP-06-06"
+      ]
+    },
+    {
+      "line": 92,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "0855ebc844500142ec2d2d529986ecb3b62d94e2a23fb02325bd5ed3b2234c70",
+      "audit_ids": [
+        "SP-06-07",
+        "SP-06-08",
+        "SP-06-09",
+        "SP-06-10"
+      ]
+    },
+    {
+      "line": 93,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "2f36195c126c1ed54aa05a8bed3c5ab09bc87cb73b894b16cb35ee0d2392be5a",
+      "audit_ids": [
+        "SP-06-11",
+        "SP-06-12",
+        "SP-06-13"
+      ]
+    },
+    {
+      "line": 95,
+      "page": 6,
+      "classification": "audited",
+      "text_sha256": "627ead6f24ec9ef9b604109f06ee48bc0b7472064750bb278e25340b85c51b11",
+      "audit_ids": [
+        "SP-06-01",
+        "SP-06-14"
+      ]
+    },
+    {
+      "line": 97,
+      "page": 6,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 99,
+      "page": 7,
+      "classification": "structure",
+      "text_sha256": "808bf9377058f4700d1010aa8783de0617364e1a9ce370f7a91a9157ef3eaf4c",
+      "audit_ids": []
+    },
+    {
+      "line": 101,
+      "page": 7,
+      "classification": "audited",
+      "text_sha256": "839c1257f03590e346094e9cc9cc6d090818e52261d34f03d407ffadacb1759e",
+      "audit_ids": [
+        "SP-07-22"
+      ]
+    },
+    {
+      "line": 103,
+      "page": 7,
+      "classification": "audited",
+      "text_sha256": "1544d4d231dd3505c65ef97e363ae4afb29ad8fc54e609c2906f78c48b4e5429",
+      "audit_ids": [
+        "SP-07-01",
+        "SP-07-02",
+        "SP-07-03",
+        "SP-07-04",
+        "SP-07-05"
+      ]
+    },
+    {
+      "line": 105,
+      "page": 7,
+      "classification": "audited",
+      "text_sha256": "868e556df8e0521e895e07eecaa1ff5387d5725d334320e0dd2338b638b38059",
+      "audit_ids": [
+        "SP-07-06",
+        "SP-07-07",
+        "SP-07-08"
+      ]
+    },
+    {
+      "line": 107,
+      "page": 7,
+      "classification": "audited",
+      "text_sha256": "710dd1000e12a3db2bd1fbed02089f8445e5046c1583505be5395a46780a7fb5",
+      "audit_ids": [
+        "SP-07-09",
+        "SP-07-10",
+        "SP-07-11",
+        "SP-07-21"
+      ]
+    },
+    {
+      "line": 109,
+      "page": 7,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 111,
+      "page": 8,
+      "classification": "structure",
+      "text_sha256": "5a5ffdacd4624a6e581ffafa69d12577ee194422ec59021fdbcd2b6970e4ecc7",
+      "audit_ids": []
+    },
+    {
+      "line": 113,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "1487088ea3ab23c2ba94f9ac43b828fb04ad7785b833676341d8410de5b5b8ff",
+      "audit_ids": [
+        "SP-08-01"
+      ]
+    },
+    {
+      "line": 115,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "15f94d19e96540770e4ceb67d77e932cb2465e5a02666a921ba2c622e9041766",
+      "audit_ids": [
+        "SP-08-02"
+      ]
+    },
+    {
+      "line": 116,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "2e8138f91540715111288b5303e301bfaae9ed2182fe30c5f7bf651130dfb628",
+      "audit_ids": [
+        "SP-08-03"
+      ]
+    },
+    {
+      "line": 117,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "bb932d4d84b4f18304db065174dd4fab1f54d1442ce127d7b2ee0791e7c99c6e",
+      "audit_ids": [
+        "SP-08-04"
+      ]
+    },
+    {
+      "line": 118,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "d6707c330b94c0264a47875c9347ce2cda8b6629199699765b2ef0d9ffe30f00",
+      "audit_ids": [
+        "SP-08-05",
+        "SP-08-06",
+        "SP-08-07",
+        "SP-08-08",
+        "SP-08-09",
+        "SP-08-10",
+        "SP-08-11"
+      ]
+    },
+    {
+      "line": 119,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "5d67c4db7604dc9ec142073d7550e48b21a1b77a5ab22590f4b64bf5ab88d61d",
+      "audit_ids": [
+        "SP-08-12",
+        "SP-08-13",
+        "SP-08-14",
+        "SP-08-15"
+      ]
+    },
+    {
+      "line": 121,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "5a537ed25234de4e34b68ad7801ad493c46232093293bf011decbbd5211a570a",
+      "audit_ids": [
+        "SP-08-16",
+        "SP-08-17",
+        "SP-08-18"
+      ]
+    },
+    {
+      "line": 123,
+      "page": 8,
+      "classification": "audited",
+      "text_sha256": "32e520f54f281d1b54da523a725c7fa3f5fdf41e4d56c6f345c7c438d9f1cbb9",
+      "audit_ids": [
+        "SP-08-19",
+        "SP-08-20",
+        "SP-08-21",
+        "SP-08-22",
+        "SP-08-23",
+        "SP-08-24"
+      ]
+    },
+    {
+      "line": 125,
+      "page": 8,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 127,
+      "page": 9,
+      "classification": "structure",
+      "text_sha256": "7571f45a7e75973e410edb1ec915eab5836c2d7f872d8274365b0f22532373ef",
+      "audit_ids": []
+    },
+    {
+      "line": 129,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "e072813bc596f4d6370a52aab4d05c1feaa110e591280a88eba1fbe78f4229c5",
+      "audit_ids": [
+        "SP-09-06"
+      ]
+    },
+    {
+      "line": 131,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "0617aee5c5b5b6a0a3dcb62f5ab84ea3ccb495fcba7e3b317b7b16195eadf807",
+      "audit_ids": [
+        "SP-09-01"
+      ]
+    },
+    {
+      "line": 132,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "c2bac41f8a23eb95d5c1f610a110d1f64fc89e314fbd62e361ec80a1ea24683c",
+      "audit_ids": [
+        "SP-09-02"
+      ]
+    },
+    {
+      "line": 134,
+      "page": 9,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "0453fb8f41ff0a6749675a3023891f4a07a6411fd456a3ef82cc99924ebed299",
+      "audit_ids": []
+    },
+    {
+      "line": 136,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "a3f9b2a011ee42f40e4a7d997ef809d856f02e5d2b80b0d6dcd48d908cb053d3",
+      "audit_ids": [
+        "SP-09-03"
+      ]
+    },
+    {
+      "line": 137,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "d93d6bbe520e131ff7d3fad15ec361b0a7b3b453fcf6ecbd143c4399711054c0",
+      "audit_ids": [
+        "SP-09-04"
+      ]
+    },
+    {
+      "line": 138,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "761ee20f404bc23c0891bb75b40f30548caf7a922751bc06b065ddbbcde26c59",
+      "audit_ids": [
+        "SP-09-01"
+      ]
+    },
+    {
+      "line": 139,
+      "page": 9,
+      "classification": "audited",
+      "text_sha256": "ef571dfec1b000e9f9040fbb6c7673de65363ffdad92c72744bc5bd0368ca182",
+      "audit_ids": [
+        "SP-09-05"
+      ]
+    },
+    {
+      "line": 141,
+      "page": 9,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 143,
+      "page": 10,
+      "classification": "structure",
+      "text_sha256": "3718480861912e9148ba49e72650c291899a1a46454580610dbd231148f76a94",
+      "audit_ids": []
+    },
+    {
+      "line": 145,
+      "page": 10,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "50c271c412be8ff526e78cd910fd03ac4b1acbb77f96a6da19782eb995b6c1d7",
+      "audit_ids": []
+    },
+    {
+      "line": 147,
+      "page": 10,
+      "classification": "audited",
+      "text_sha256": "33eefd20f0f2867a7d8c4ffb1b5345b600f5596e237fb7e16aa3602c0717cdb5",
+      "audit_ids": [
+        "SP-10-01",
+        "SP-10-02",
+        "SP-10-03",
+        "SP-10-04",
+        "SP-10-05",
+        "SP-10-06",
+        "SP-10-07",
+        "SP-10-08",
+        "SP-10-09"
+      ]
+    },
+    {
+      "line": 149,
+      "page": 10,
+      "classification": "audited",
+      "text_sha256": "ec9760bed4a43cc3b3deb8c0dff3ce7f246bbad29b31c14b53ddff7131af8320",
+      "audit_ids": [
+        "SP-10-10",
+        "SP-10-11",
+        "SP-10-12",
+        "SP-10-13",
+        "SP-10-14",
+        "SP-10-15",
+        "SP-10-16"
+      ]
+    },
+    {
+      "line": 151,
+      "page": 10,
+      "classification": "audited",
+      "text_sha256": "476c694c200ce0ce2d5d103c5cd067a447b3546b05f09c128a18accabb6e0ec3",
+      "audit_ids": [
+        "SP-10-17"
+      ]
+    },
+    {
+      "line": 153,
+      "page": 10,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 155,
+      "page": 11,
+      "classification": "structure",
+      "text_sha256": "d5352eb90b984257a6e6901ab48b02d2a0233f0ab09eb2861069a0245009d4b0",
+      "audit_ids": []
+    },
+    {
+      "line": 157,
+      "page": 11,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "bec7416d4a4cbe13c7b9a5e4c292efb024f1a493ffda48454b1c4f98211abd12",
+      "audit_ids": []
+    },
+    {
+      "line": 159,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "b7357b8e2aa251592e00f893b1f2f2c3751f001dcbac9a5282d5c51c8b8e238e",
+      "audit_ids": [
+        "SP-11-01",
+        "SP-11-02",
+        "SP-11-03",
+        "SP-11-04",
+        "SP-11-05",
+        "SP-11-09",
+        "SP-11-10",
+        "SP-11-11",
+        "SP-11-12"
+      ]
+    },
+    {
+      "line": 161,
+      "page": 11,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "5c47084820f1a683865b81ecf2ee78b868075a6214c6434a3368f8c652067e30",
+      "audit_ids": []
+    },
+    {
+      "line": 163,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "41f44222b64eeb2206c3796e07a55ec9437a40e02db4f99380a06ed51548174e",
+      "audit_ids": [
+        "SP-11-02"
+      ]
+    },
+    {
+      "line": 164,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "362babd18e50d1fbe9d6e0cbba1e8368f655657f87aa1c6c392450e928a339cf",
+      "audit_ids": [
+        "SP-11-03",
+        "SP-11-04"
+      ]
+    },
+    {
+      "line": 165,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "a6dc4d829254d0bfb1e1bca4c52a61250b60549b25e54e30317ed323511609b6",
+      "audit_ids": [
+        "SP-11-06",
+        "SP-11-07",
+        "SP-11-08",
+        "SP-11-09",
+        "SP-11-10"
+      ]
+    },
+    {
+      "line": 166,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "6e1be78e151694f5ee78fd0b6da5bed3b49417746c566697ac5e04eb686a8efb",
+      "audit_ids": [
+        "SP-11-11"
+      ]
+    },
+    {
+      "line": 167,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "5a10a564de12897a543129485baffafce7c9c2e968a93ee0ce2c448436e79d6f",
+      "audit_ids": [
+        "SP-11-12",
+        "SP-11-13",
+        "SP-11-14",
+        "SP-11-15",
+        "SP-11-16",
+        "SP-11-17"
+      ]
+    },
+    {
+      "line": 169,
+      "page": 11,
+      "classification": "audited",
+      "text_sha256": "4c008ccd80578404dfd7d3ff668a83920b7a143cf1938f7352400410ebaf5a45",
+      "audit_ids": [
+        "SP-11-17"
+      ]
+    },
+    {
+      "line": 171,
+      "page": 11,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 173,
+      "page": 12,
+      "classification": "structure",
+      "text_sha256": "b6875a599717067aed15fd3903a1b7d4eea1f6557d1d82d375e3746dfa40fff0",
+      "audit_ids": []
+    },
+    {
+      "line": 175,
+      "page": 12,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "06b4c8eaa9b9c1234ebab719f20886c1025101c7637bdc50a5b35dec698933d5",
+      "audit_ids": []
+    },
+    {
+      "line": 177,
+      "page": 12,
+      "classification": "audited",
+      "text_sha256": "b90b8887f4756d8007554267382c17da1f4decf6aec758911d06deb870d69b4f",
+      "audit_ids": [
+        "SP-12-01",
+        "SP-12-02",
+        "SP-12-03",
+        "SP-12-04",
+        "SP-12-05"
+      ]
+    },
+    {
+      "line": 179,
+      "page": 12,
+      "classification": "audited",
+      "text_sha256": "1b3cf1b3ac1ed0dfbda975a5a5f3db07aa7e1c76326fbfdb13aa60b9579c82dc",
+      "audit_ids": [
+        "SP-12-06",
+        "SP-12-07",
+        "SP-12-08",
+        "SP-12-09",
+        "SP-12-10",
+        "SP-12-11"
+      ]
+    },
+    {
+      "line": 181,
+      "page": 12,
+      "classification": "audited",
+      "text_sha256": "c71e88494661df8e43a91f10689d5c998f5d37561a2c3f58c8f199efb670d9f3",
+      "audit_ids": [
+        "SP-12-12",
+        "SP-12-13",
+        "SP-12-14",
+        "SP-12-15"
+      ]
+    },
+    {
+      "line": 183,
+      "page": 12,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 185,
+      "page": 13,
+      "classification": "structure",
+      "text_sha256": "47f1c734fdcf7cf3888a9aa385f2c4d2621bb3354918c8457f5ee60628cab951",
+      "audit_ids": []
+    },
+    {
+      "line": 187,
+      "page": 13,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "28444ae5d3b44f0998d1594f5568116b9bd05e03b51df9d417c950c0e45235ae",
+      "audit_ids": []
+    },
+    {
+      "line": 189,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "996a11c3724334a7e275f1f83e3c218285fb63e342fbc43241ecac3732e41fae",
+      "audit_ids": [
+        "SP-13-01"
+      ]
+    },
+    {
+      "line": 190,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "756321a184b9cb904a80fa238cdec586e880dc975db09b374174ab483812285d",
+      "audit_ids": [
+        "SP-13-02"
+      ]
+    },
+    {
+      "line": 191,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "dc718d7cb9b2033de832209e6f451cf712f7eaedc979d430a81b5a7a4019fbb4",
+      "audit_ids": [
+        "SP-12-04",
+        "SP-12-05"
+      ]
+    },
+    {
+      "line": 192,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "4a894d8720eb2c85993c800be54c6d4206263a28981ff333ff202a71f0710933",
+      "audit_ids": [
+        "SP-13-03"
+      ]
+    },
+    {
+      "line": 193,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "d2ca350b31b8a572390acb722da04c6957134ad37abda5def88f35cdf0465a64",
+      "audit_ids": [
+        "SP-13-04"
+      ]
+    },
+    {
+      "line": 195,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "53f63970c9093977e9c0801c92cc59452989baaa8687d865ded40484e0c6f852",
+      "audit_ids": [
+        "SP-12-04",
+        "SP-12-05",
+        "SP-13-05",
+        "SP-13-06"
+      ]
+    },
+    {
+      "line": 197,
+      "page": 13,
+      "classification": "audited",
+      "text_sha256": "5d5bb8fa64534f4ad43c0965e8d5fd29ab011d93149a69a762dc40df3925c933",
+      "audit_ids": [
+        "SP-13-07"
+      ]
+    },
+    {
+      "line": 199,
+      "page": 13,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 201,
+      "page": 14,
+      "classification": "structure",
+      "text_sha256": "fc6d20be0e615bd19e203bf47e183e6c31dc3d917f67fd3829bc391a5db66cd0",
+      "audit_ids": []
+    },
+    {
+      "line": 203,
+      "page": 14,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "1e7a65429ebfee4b8c4e87e7a46f574363ec5e8932b0ac4e5ffc49da31f85f3f",
+      "audit_ids": []
+    },
+    {
+      "line": 205,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "541339361a5c29a3d01c9b84e41baeca2fac63c0d0a75874c3a0878934805223",
+      "audit_ids": [
+        "SP-14-01"
+      ]
+    },
+    {
+      "line": 206,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "b2919b9e30a824c42026ea20ca422fa5f44dc40d73565af5f158ab4b9d2e0fee",
+      "audit_ids": [
+        "SP-14-02"
+      ]
+    },
+    {
+      "line": 207,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "2738ebd04b0c3c6588073552a79f679139ef1a314a3d8bfe82d0c4bd3fcdaaaa",
+      "audit_ids": [
+        "SP-14-03"
+      ]
+    },
+    {
+      "line": 208,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "6e6c9199c0223b01bdbec319dfec9ff259700e84de6454e6503b544bfebd4f67",
+      "audit_ids": [
+        "SP-14-04"
+      ]
+    },
+    {
+      "line": 209,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "7d051dcf4439d593cba2b4369c5acb930049fc5c15dda687a0a2e985baa07593",
+      "audit_ids": [
+        "SP-14-05"
+      ]
+    },
+    {
+      "line": 210,
+      "page": 14,
+      "classification": "audited",
+      "text_sha256": "33c07189be4e6d310693124c4c1cd0947298b5f33637011a4782c0db31208eb7",
+      "audit_ids": [
+        "SP-14-06"
+      ]
+    },
+    {
+      "line": 212,
+      "page": 14,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 214,
+      "page": 15,
+      "classification": "structure",
+      "text_sha256": "98323c7e92bde03b0c3e498a8a36af680151d3e058e7c37145b15472be0efdd1",
+      "audit_ids": []
+    },
+    {
+      "line": 216,
+      "page": 15,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "00ea694af6e46532d694244e9cb25f5a1f634f26b135aa41dd08f9346f38fc5c",
+      "audit_ids": []
+    },
+    {
+      "line": 218,
+      "page": 15,
+      "classification": "audited",
+      "text_sha256": "5d5ebc8c88aad1f847b439dfe04f59f83b1dee06a6f94b14762eefdc2abcbd9a",
+      "audit_ids": [
+        "SP-15-01",
+        "SP-15-02",
+        "SP-15-03",
+        "SP-15-04",
+        "SP-15-05",
+        "SP-15-06"
+      ]
+    },
+    {
+      "line": 220,
+      "page": 15,
+      "classification": "audited",
+      "text_sha256": "d9fffa536fbf44ec87d9fa622169e92733707f4afc0fc7bbf303ef0e0bc3d763",
+      "audit_ids": [
+        "SP-15-07"
+      ]
+    },
+    {
+      "line": 222,
+      "page": 15,
+      "classification": "audited",
+      "text_sha256": "460177e496890a7e6c6ec60f92f5d94f6eecda862c3d942c997d00bcffe7ac46",
+      "audit_ids": [
+        "SP-15-08",
+        "SP-15-09",
+        "SP-15-10",
+        "SP-15-11"
+      ]
+    },
+    {
+      "line": 224,
+      "page": 15,
+      "classification": "structure",
+      "text_sha256": "cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b",
+      "audit_ids": []
+    },
+    {
+      "line": 226,
+      "page": 15,
+      "classification": "narrative-or-repeated-summary",
+      "text_sha256": "e6d322e367f8f45ccbca1f65ff6949122dc249a5862ee3b563f9046b7313140b",
+      "audit_ids": []
+    }
+  ],
+  "unmapped_source_lines": [],
+  "not_run": [
+    "Oracle live",
+    "provider inference",
+    "business XLSX case",
+    "competitor comparison",
+    "coverage and timing benchmark"
+  ]
+}

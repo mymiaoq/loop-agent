@@ -137,12 +137,28 @@ class WorkbenchBrowserTests(unittest.TestCase):
                             f'Page overflow at width {width}')
             self.assertTrue(page.evaluate('document.documentElement.scrollHeight <= innerHeight + 1'),
                             f'Page-level vertical scroll at width {width}')
-            page.screenshot(path=str(self.evidence / f'workbench-{width}.png'), full_page=True)
+            page.screenshot(path=str(self.evidence / f'workbench-{width}.png'), full_page=True,
+                            animations='disabled')
+        page.set_viewport_size({'width': 1366, 'height': 640})
+        self.assertTrue(page.evaluate('''() => {
+            const composer = document.querySelector('.composer').getBoundingClientRect();
+            const nav = document.querySelector('.task-sidebar nav').getBoundingClientRect();
+            const actions = document.querySelector('.task-actions').getBoundingClientRect();
+            return composer.top >= 0 && nav.bottom <= innerHeight &&
+                actions.bottom <= innerHeight && document.querySelector('.task-list').clientHeight > 0;
+        }'''), 'Compact desktop hides the composer, task list or bottom actions')
+        page.screenshot(path=str(self.evidence / 'workbench-1366-compact.png'), full_page=True,
+                        animations='disabled')
+        page.set_viewport_size({'width': 390, 'height': 1000})
         task_drawer()
+        page.screenshot(path=str(self.evidence / 'workbench-mobile-tasks.png'), full_page=True,
+                        animations='disabled')
         page.locator('[data-page="skills"]').click()
         expect(page.locator('#skill-list')).to_contain_text('brainstorming')
         page.locator('#skill-list .row').filter(has_text='superpowers/skills/brainstorming/').get_by_role('button').click()
         expect(page.locator('#modal-body')).to_contain_text('.docloop/superpowers/skills/brainstorming/SKILL.md')
+        page.screenshot(path=str(self.evidence / 'workbench-mobile-skill-dialog.png'), full_page=True,
+                        animations='disabled')
         page.keyboard.press('Escape')
         expect(page.locator('#modal')).not_to_be_visible()
         task_drawer()
@@ -224,6 +240,8 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.locator('#run-spec').click()
         expect(page.locator('#task-status')).to_have_text('阻塞', timeout=30000)
         expect(page.locator('#execution-records .record.error').first).to_be_visible()
+        page.screenshot(path=str(self.evidence / 'workbench-blocked.png'), full_page=True,
+                        animations='disabled')
         self.assertEqual(errors, [])
         from docloop.workbench import find_instance, stop_existing
         port = int(self.url.rsplit(':', 1)[1])
