@@ -1,0 +1,9 @@
+verification:
+  change_id: ''
+  checks: []
+  commit: ''
+  failures: []
+  producer: verify-agent
+  remaining_risks:
+  - Template only; no verification executed.
+  status: blocked

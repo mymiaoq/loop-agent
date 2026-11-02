@@ -1,0 +1,12 @@
+allowed_commands: []
+allowed_paths: []
+change_id: ''
+domains:
+- workflow
+excluded_rules: []
+rules:
+- code-standard
+- verification-standard
+skills: []
+verification:
+- static

@@ -1,0 +1,25 @@
+status: passed
+reviewer: independent code-review subagent /root/review_framework
+scope: framework and controlled demo
+independent_tests:
+  command: uv run python -m unittest discover -s tests -v
+  passed: 28
+  seconds: 15.207
+resolved_findings:
+- id: R-001
+  severity: P1
+  problem: Edited draft kept stale acceptance IDs
+  resolution: Extract AC IDs from approved baseline bytes; regression passed
+- id: R-002
+  severity: P1
+  problem: Uncommitted repair validated against old Commit
+  resolution: HEAD plus clean index/worktree checks before verification and archive;
+    regression passed
+- id: R-003
+  severity: P2
+  problem: Human approval wait consumed execution budget
+  resolution: Approval node does not charge; first execution node starts budget; regression
+    passed
+remaining_important_findings: []
+limitations:
+- No real model inference or semantic business acceptance.

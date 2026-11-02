@@ -1,0 +1,49 @@
+name: docloop-agent
+profile: docloop-platform
+runtime:
+  language: python
+  minimum_python: '3.11'
+  graph: langgraph
+  checkpoint: sqlite
+mode: real
+superpowers:
+  repository: https://github.com/obra/superpowers.git
+  commit: 2ce8aa15d05bd57213e6f746f953aafb7ded7a8b
+  enabled: false
+  install_path: null
+limits:
+  retries: 3
+  repairs: 3
+  no_progress: 2
+  llm: 30
+  tokens: 100000
+  tools: 100
+  model_rounds: 20
+  task_seconds: 600
+  run_seconds: 3600
+  concurrency: 1
+  graph_steps: 50
+  circuit_failures: 5
+permissions:
+  allowed_paths: []
+  allowed_commands: []
+adapters:
+  model: null
+  browser: null
+  documents:
+  - markdown
+  coding: null
+routing:
+  workflow:
+  - spec-create
+  - plan-create
+  - checklist-create
+  ui:
+  - component-generator
+  - frontend-quality-check
+  api:
+  - api-contract
+  backend:
+  - backend-code-generator
+  security:
+  - security-check

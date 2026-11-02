@@ -1,0 +1,26 @@
+name: enterprise-vue-java
+base_rules:
+- code-standard
+- verification-standard
+- enterprise/code-standard
+domain_rules:
+  ui:
+  - ui-standard
+  api:
+  - api-standard
+stack:
+  frontend: Vue 3
+  backend: Java 8 + MyBatis Plus
+protected_paths:
+- frontend/src/main.js
+- frontend/src/App.vue
+- frontend/src/service/request.js
+- frontend/vite.config.js
+- frontend/.env.*
+- frontend/package.json
+- frontend/package-lock.json
+- backend/**/pom.xml
+- backend/**/application.yml
+- backend/**/log4j2.xml
+- backend/**/ehcache.xml
+- backend/**/BaseController.java

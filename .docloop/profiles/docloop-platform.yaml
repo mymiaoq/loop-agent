@@ -1,0 +1,10 @@
+name: docloop-platform
+base_rules:
+- code-standard
+- verification-standard
+domain_rules: {}
+stack:
+  language: python
+  graph: langgraph
+protected_paths:
+- .docloop/changes/*/baseline/

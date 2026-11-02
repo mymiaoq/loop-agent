@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+dist/
+*.egg-info/
+.docloop/checkpoints/*
+.docloop/sessions/*
+.docloop/traces/*
+.docloop/recovery/*
+!.gitkeep
+.env
