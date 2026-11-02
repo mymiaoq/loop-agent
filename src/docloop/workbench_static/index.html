@@ -1,5 +1,307 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="favicon.svg"><title>DocLoop · 任务执行</title><link rel="stylesheet" href="app.css"><script defer src="app.js"></script></head><body><button id="scrim" hidden aria-label="关闭任务列表"></button><aside class="task-sidebar"><div class="project-bar"><select id="project" aria-label="当前项目"></select><button id="new-project" title="新建项目">＋</button></div><div class="task-heading"><h1>任务</h1><button id="new-task">＋ 新建任务</button></div><input id="task-search" type="search" placeholder="搜索当前项目任务" aria-label="搜索任务"><div id="task-list" class="task-list"></div><div class="stage-area"><div class="section-heading">当前任务阶段 <span id="stage-count"></span></div><div id="stage-list"></div></div><div class="composer"><label class="sr-only" for="spec-title">新任务标题（可选）</label><input id="spec-title" placeholder="新任务标题（可选）" maxlength="200"><label class="sr-only" for="requirement">新任务需求</label><textarea id="requirement" placeholder="描述新任务的目标与验收条件…" rows="4"></textarea><div class="composer-tools"><button id="attachment" title="打开资料库">附件</button><select id="generation-mode" aria-label="生成模式"><option value="sandbox">沙箱生成</option><option value="real" disabled>真实模型（未配置）</option></select><button id="generate" class="primary" aria-label="提交新任务">↑</button></div><small>提交将新建任务，不会修改当前任务</small></div><nav aria-label="辅助功能"><button data-page="workspace" class="active">任务</button><button data-page="documents">资料</button><button data-page="runs">记录</button><button data-page="skills">Skills</button><button data-page="settings">设置</button></nav></aside><main id="main"><header class="execution-header"><button id="drawer-toggle" aria-expanded="false">任务</button><strong id="page-title">任务执行</strong><span id="task-title">请选择任务</span><span id="task-status" class="badge"></span><span id="busy-status" role="status" hidden>处理中…</span><button id="refresh">刷新</button></header><div id="notice" role="status" aria-live="polite" hidden></div><section id="workspace" class="page"><div class="view-tabs" role="tablist" aria-label="任务内容"><button data-view="execution" role="tab" aria-selected="true">执行记录</button><button data-view="spec" role="tab" aria-selected="false">需求规格</button></div><div id="execution-view" class="view"><div class="record-toolbar"><label><input id="expand-all" type="checkbox"> 展开全部记录</label><select id="record-filter" aria-label="筛选记录"><option value="all">全部记录</option><option value="stage">阶段</option><option value="skill">Skills</option><option value="exception">验证与异常</option></select></div><p id="record-scope" class="scope">最近 20 次运行；仅显示实际记录，不展示模型推理。</p><div id="execution-records"></div></div><div id="spec-view" class="view" hidden><div id="spec-empty" class="empty">选择任务或在左下方创建新任务。</div><div id="spec-detail" hidden><div class="spec-meta"><span id="spec-status" class="badge"></span><span id="spec-revision"></span><span id="spec-mode"></span><span id="dirty"></span></div><label for="spec-content">需求规格</label><textarea id="spec-content" class="editor" spellcheck="false"></textarea><details><summary>内容指纹与 Skill 来源</summary><code id="spec-hash"></code><div id="skill-sources"></div></details><details><summary>引用依据与项目资料（<span id="doc-count">0</span>）</summary><div id="references"></div><div id="context-docs"></div></details></div></div><footer class="task-actions"><span id="bottom-status">等待选择任务</span><button id="save-spec">保存规格</button><button id="approve-spec">审批规格</button><select id="scenario" aria-label="验证场景"><option value="success">成功路径</option><option value="verification-failure">验证失败路径</option></select><button id="run-spec" class="primary">运行沙箱验证</button><button id="artifacts">查看产物</button><small id="execution-boundary">受控沙箱验证不代表真实业务验收</small></footer></section><section id="documents" class="page" hidden><div class="two-column"><article class="panel"><h2>添加项目资料</h2><p class="muted">仅支持 UTF-8 编码的 .md / .txt，单文件不超过 2 MiB。</p><label for="file">上传文件</label><input id="file" type="file" accept=".md,.txt"><button id="upload" class="primary">上传资料</button><div class="divider"></div><label for="paste-name">文本资料名称</label><input id="paste-name" placeholder="业务规则.md"><label for="paste-content">粘贴文本</label><textarea id="paste-content" rows="8"></textarea><button id="add-text">添加文本资料</button></article><article class="panel"><h2>资料与检索</h2><div class="search"><input id="search-query" aria-label="搜索资料" placeholder="搜索项目资料…"><button id="search">搜索</button></div><div id="search-results"></div><div id="document-list" class="list"></div></article></div></section>
-<section id="runs" class="page" hidden><article class="panel"><div class="panel-heading"><h2>沙箱运行记录</h2><span class="muted">仅演示可靠性流程</span></div><div id="run-list" class="list"></div></article></section>
-<section id="skills" class="page" hidden><article class="panel"><h2>本地 Skills</h2><p class="muted">只读查看当前磁盘内容与指纹。加载不代表模型已遵从。</p><div id="skill-list" class="list"></div></article></section>
-<section id="settings" class="page" hidden><div class="two-column"><article class="panel"><h2>模型连接</h2><p class="muted">通用 Chat Completions 接口。本轮未预置真实接口；配置与密钥仅保存在服务会话内存中，重启后失效。</p><form id="model-form"><label for="base-url">Base URL</label><input id="base-url" type="url" placeholder="https://example.com/v1" required><label for="model">模型名称</label><input id="model" required><label for="api-key">API Key</label><input id="api-key" type="password" autocomplete="off" required><div class="actions"><button class="primary" type="submit">保存会话配置</button><button id="test-model" type="button">测试连接</button></div></form></article><article class="panel"><h2>环境信息</h2><dl id="environment-info"></dl><p class="boundary">连接配置见上方。沙箱结果不能作为真实模型推理或业务验收证据。</p></article></div></section>
-</main><dialog id="modal"><form method="dialog"><button class="dialog-close" aria-label="关闭">×</button></form><h2 id="modal-title"></h2><div id="modal-body"></div><div id="modal-actions" class="actions"></div></dialog></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f3faf7">
+<link rel="icon" href="favicon.svg">
+<title>DocLoop · 任务执行</title>
+<link rel="stylesheet" href="app.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<button id="scrim" class="scrim" hidden aria-label="关闭任务列表"></button>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">DL</span>
+    <div class="brand-copy">
+      <h1>DocLoop 工作台</h1>
+      <span id="page-title" class="page-title">任务执行</span>
+    </div>
+  </div>
+  <div class="project-switch">
+    <label class="sr-only" for="project">当前项目</label>
+    <select id="project" aria-label="当前项目"></select>
+    <button id="new-project" type="button" class="icon-button" title="新建项目" aria-label="新建项目">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <div class="header-meta">
+    <span class="pill pill-storage" id="storage-pill">SQLite 沙箱</span>
+    <span class="pill pill-model" id="model-pill">模型未配置</span>
+    <span id="busy-status" class="pill pill-busy" role="status" hidden>处理中…</span>
+    <button id="refresh" type="button" class="ghost-button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>
+      <span>刷新</span>
+    </button>
+    <button id="drawer-toggle" type="button" class="ghost-button drawer-toggle" aria-expanded="false" aria-controls="task-sidebar">任务</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <aside class="task-sidebar" id="task-sidebar" aria-label="任务与新需求">
+    <section class="sidebar-block task-block">
+      <div class="section-head">
+        <h2>任务</h2>
+        <button id="new-task" type="button" class="text-button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>新建任务</span>
+        </button>
+      </div>
+      <div id="task-summary" class="task-summary"></div>
+      <label class="sr-only" for="task-search">搜索当前项目任务</label>
+      <input id="task-search" type="search" placeholder="搜索当前项目任务" aria-label="搜索任务">
+      <div id="task-list" class="task-list" aria-label="任务列表"></div>
+    </section>
+
+    <section class="composer" aria-label="新建任务">
+      <div class="composer-head">
+        <span class="composer-label">新任务</span>
+        <span class="composer-note">不修改当前任务</span>
+      </div>
+      <label class="sr-only" for="spec-title">新任务标题（可选）</label>
+      <input id="spec-title" placeholder="任务标题（可选）" maxlength="200">
+      <label class="sr-only" for="requirement">新任务需求</label>
+      <textarea id="requirement" rows="3" maxlength="12000" placeholder="描述新任务的目标与验收条件…"></textarea>
+      <div class="composer-tools">
+        <button id="attachment" type="button" class="icon-button" title="打开资料库" aria-label="打开资料库">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l8-8"/></svg>
+        </button>
+        <select id="generation-mode" aria-label="生成模式">
+          <option value="sandbox">沙箱生成</option>
+          <option value="real" disabled>真实模型（未配置）</option>
+        </select>
+        <button id="generate" type="button" class="send-button" aria-label="提交新任务" title="提交新任务">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <nav class="app-nav" aria-label="辅助功能">
+      <button type="button" data-page="workspace" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M8 4v16M3 9h5"/></svg>
+        <span>任务</span>
+      </button>
+      <button type="button" data-page="documents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        <span>资料</span>
+      </button>
+      <button type="button" data-page="runs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>
+        <span>记录</span>
+      </button>
+      <button type="button" data-page="skills">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13 4l-2 16"/></svg>
+        <span>Skills</span>
+      </button>
+      <button type="button" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+        <span>设置</span>
+      </button>
+    </nav>
+  </aside>
+
+  <main id="main" class="main">
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden>
+      <span id="notice-text" class="notice-text"></span>
+      <button id="notice-close" type="button" class="notice-close" aria-label="关闭提示">×</button>
+    </div>
+
+    <section id="workspace" class="page page-workspace">
+      <header class="task-heading">
+        <div class="task-heading-copy">
+          <span class="eyebrow">当前任务</span>
+          <h2 id="task-title">请选择任务</h2>
+        </div>
+        <span id="task-status" class="pill"></span>
+      </header>
+
+      <div class="stage-strip">
+        <div class="stage-strip-head">
+          <span>当前任务阶段</span>
+          <span id="stage-count" class="muted">0/4</span>
+        </div>
+        <ol id="stage-list" class="stepper"></ol>
+      </div>
+
+      <div class="view-tabs" role="tablist" aria-label="任务内容">
+        <button type="button" data-view="execution" role="tab" aria-selected="true">执行记录</button>
+        <button type="button" data-view="spec" role="tab" aria-selected="false">需求规格</button>
+      </div>
+
+      <div id="execution-view" class="view">
+        <div class="record-toolbar">
+          <label class="check">
+            <input id="expand-all" type="checkbox">
+            <span>展开全部记录</span>
+          </label>
+          <div class="record-tools">
+            <button id="locate-error" type="button" class="locate-button" hidden>定位异常</button>
+            <select id="record-filter" aria-label="筛选记录">
+              <option value="all">全部记录</option>
+              <option value="stage">阶段</option>
+              <option value="skill">Skills</option>
+              <option value="exception">验证与异常</option>
+            </select>
+          </div>
+        </div>
+        <p id="record-scope" class="scope"></p>
+        <div id="execution-records" class="records"></div>
+      </div>
+
+      <div id="spec-view" class="view" hidden>
+        <div id="spec-empty" class="empty">选择任务或在左下方创建新任务。</div>
+        <div id="spec-detail" hidden>
+          <div class="spec-meta">
+            <span id="spec-status" class="pill"></span>
+            <span id="spec-revision" class="muted"></span>
+            <span id="spec-mode" class="muted"></span>
+            <span id="dirty" class="dirty"></span>
+            <button id="copy-hash" type="button" class="text-button copy-hash">复制指纹</button>
+          </div>
+          <label class="field-label" for="spec-content">需求规格</label>
+          <textarea id="spec-content" class="editor" spellcheck="false"></textarea>
+          <div class="fold-grid">
+            <details class="fold">
+              <summary>内容指纹与 Skill 来源</summary>
+              <code id="spec-hash"></code>
+              <div id="skill-sources" class="list"></div>
+            </details>
+            <details class="fold">
+              <summary>引用依据与项目资料（<span id="doc-count">0</span>）</summary>
+              <div id="references" class="list"></div>
+              <div id="context-docs" class="list"></div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <footer class="task-actions">
+        <div class="task-actions-info">
+          <span id="bottom-status" class="status-text">等待选择任务</span>
+          <small id="execution-boundary" class="boundary">受控沙箱验证不代表真实业务验收</small>
+        </div>
+        <div class="action-buttons">
+          <button id="save-spec" type="button">保存规格</button>
+          <button id="approve-spec" type="button">审批规格</button>
+          <select id="scenario" aria-label="验证场景">
+            <option value="success">成功路径</option>
+            <option value="verification-failure">验证失败路径</option>
+          </select>
+          <button id="run-spec" type="button" class="primary">运行沙箱验证</button>
+          <button id="artifacts" type="button">查看产物</button>
+        </div>
+      </footer>
+    </section>
+
+    <section id="documents" class="page page-scroll" hidden>
+      <header class="page-head">
+        <span class="eyebrow">项目资料</span>
+        <h2>资料与检索</h2>
+        <p class="muted">资料作为需求与审批的依据；同名换版保留历史引用，停用后不再参与检索。</p>
+      </header>
+      <div class="two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <h3>添加项目资料</h3>
+            <span class="pill pill-soft">.md / .txt · ≤ 2 MiB</span>
+          </div>
+          <label class="field-label" for="file">上传文件</label>
+          <div class="upload-zone">
+            <input id="file" type="file" accept=".md,.txt" class="file-input">
+            <label class="file-pick" for="file">选择文件</label>
+            <span id="file-name" class="file-name">未选择文件</span>
+            <button id="upload" type="button" class="primary">上传资料</button>
+          </div>
+          <p class="upload-hint">也可以把 .md / .txt 文件拖到上方区域。</p>
+          <div class="divider"></div>
+          <label class="field-label" for="paste-name">文本资料名称</label>
+          <input id="paste-name" maxlength="255" placeholder="业务规则.md">
+          <label class="field-label" for="paste-content">粘贴文本</label>
+          <textarea id="paste-content" rows="8" placeholder="粘贴 UTF-8 编码的 Markdown / 文本…"></textarea>
+          <button id="add-text" type="button">添加文本资料</button>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <h3>资料库</h3>
+            <span class="muted small">版本与指纹可追溯</span>
+          </div>
+          <div class="search">
+            <label class="sr-only" for="search-query">搜索资料</label>
+            <input id="search-query" aria-label="搜索资料" placeholder="搜索项目资料…">
+            <button id="search" type="button">搜索</button>
+          </div>
+          <div id="search-results" class="list"></div>
+          <div id="document-list" class="list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="runs" class="page page-scroll" hidden>
+      <header class="page-head">
+        <span class="eyebrow">运行记录</span>
+        <h2>沙箱运行记录</h2>
+        <p class="muted">仅演示可靠性流程；沙箱结果不能作为真实模型推理或业务验收证据。</p>
+      </header>
+      <div id="run-list" class="list"></div>
+    </section>
+
+    <section id="skills" class="page page-scroll" hidden>
+      <header class="page-head">
+        <span class="eyebrow">本地能力</span>
+        <h2>本地 Skills</h2>
+        <p class="muted">只读查看当前磁盘内容与指纹。加载不代表模型已遵从。</p>
+      </header>
+      <div id="skill-list" class="list"></div>
+    </section>
+
+    <section id="settings" class="page page-scroll" hidden>
+      <header class="page-head">
+        <span class="eyebrow">环境与连接</span>
+        <h2>设置</h2>
+        <p class="muted">通用 Chat Completions 接口；凭据只保存在服务进程内存，重启后失效。</p>
+      </header>
+      <div class="two-column">
+        <article class="panel">
+          <div class="panel-heading">
+            <h3>模型连接</h3>
+            <span class="pill pill-soft">会话内存</span>
+          </div>
+          <form id="model-form">
+            <label class="field-label" for="base-url">Base URL</label>
+            <input id="base-url" type="url" maxlength="2000" placeholder="https://example.com/v1" required>
+            <label class="field-label" for="model">模型名称</label>
+            <input id="model" maxlength="200" required>
+            <label class="field-label" for="api-key">API Key</label>
+            <input id="api-key" type="password" autocomplete="off" maxlength="4096" required>
+            <div class="actions">
+              <button class="primary" type="submit">保存会话配置</button>
+              <button id="test-model" type="button">测试连接</button>
+            </div>
+          </form>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <h3>环境信息</h3>
+          </div>
+          <dl id="environment-info" class="environment"></dl>
+          <p class="boundary">沙箱结果不能作为真实模型推理或业务验收证据。</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="modal" aria-labelledby="modal-title">
+  <div class="dialog-head">
+    <h2 id="modal-title"></h2>
+    <form method="dialog">
+      <button class="icon-button dialog-close" aria-label="关闭">×</button>
+    </form>
+  </div>
+  <div id="modal-body" class="dialog-body"></div>
+  <div id="modal-actions" class="dialog-actions"></div>
+</dialog>
+</body>
+</html>
