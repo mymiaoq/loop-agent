@@ -95,3 +95,18 @@ class WorkbenchStoreTests(unittest.TestCase):
             results = list(executor.map(approve, range(4)))
         self.assertEqual(results.count('approved'), 1)
         self.assertEqual(results.count('conflict'), 3)
+
+    def test_task_summary_is_not_lost_when_project_history_is_truncated(self):
+        pid = self.project['id']
+        old = self.store.create_spec(pid, '旧任务', 'AC-001: old', 'sandbox', [], [])
+        new = self.store.create_spec(pid, '新任务', 'AC-001: new', 'sandbox', [], [])
+        for spec in (old, new):
+            self.store.approve_spec(pid, spec['id'], spec['sha256'], 1, 'tester')
+        first_run = self.store.start_run(pid, old['id'])
+        self.store.finish_run(pid, first_run['id'], {'status': 'accepted'})
+        for _ in range(101):
+            run = self.store.start_run(pid, new['id'])
+            self.store.finish_run(pid, run['id'], {'status': 'blocked'})
+        self.assertFalse(any(run['spec_id'] == old['id'] for run in self.store.history(pid)))
+        self.assertEqual(self.store.task_summaries(pid)[old['id']]['status'], 'accepted')
+        self.assertEqual(self.store.task_runs(pid, old['id'])[0]['id'], first_run['id'])

@@ -52,3 +52,22 @@ class WorkbenchServiceTests(unittest.TestCase):
         ok = self.service.run_demo(self.pid, spec['id'], 'success')
         self.assertEqual(ok['status'], 'accepted')
         self.assertTrue(ok['result']['history'])
+
+    def test_task_execution_records_are_real_and_project_scoped(self):
+        from docloop.workbench_store import NotFound
+        spec = self.service.generate_spec(self.pid, '执行区', '展示真实执行记录', 'sandbox')
+        first = self.service.execution(self.pid, spec['id'])
+        self.assertTrue(any(record['type'] == 'skill' for record in first['records']))
+        self.assertFalse(any(record['type'] == 'verification' for record in first['records']))
+        self.store.approve_spec(self.pid, spec['id'], spec['sha256'], 1, 'tester')
+        run = self.service.run_demo(self.pid, spec['id'])
+        result = self.service.execution(self.pid, spec['id'])
+        self.assertTrue(any(record['type'] == 'verification' and record['result'] == 'passed'
+                            for record in result['records']))
+        self.assertTrue(any(record.get('run_id') == run['id'] for record in result['records']))
+        self.assertEqual(result['spec_id'], spec['id'])
+        related = [record for record in result['records'] if record.get('run_id') == run['id']]
+        self.assertEqual(related[-1]['title'], '受控运行已返回')
+        other = self.store.create_project('隔离任务')['id']
+        with self.assertRaises(NotFound):
+            self.service.execution(other, spec['id'])

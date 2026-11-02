@@ -39,6 +39,11 @@ class WorkbenchApiTests(unittest.TestCase):
         self.assertEqual(run.status_code, 200, run.text)
         self.assertEqual(run.json()['status'], 'accepted')
         self.assertFalse(run.json()['result']['real_business_acceptance'])
+        execution = self.client.get(path + '/execution')
+        self.assertEqual(execution.status_code, 200)
+        self.assertTrue(any(record['type'] == 'verification' for record in execution.json()['records']))
+        self.assertEqual(execution.json()['artifacts'][0]['sha256'], spec['sha256'])
+        self.assertEqual(self.client.get('/api/state').json()['task_summaries'][spec['id']]['status'], 'accepted')
 
     def test_cross_origin_and_missing_token_rejected(self):
         path = '/api/projects'

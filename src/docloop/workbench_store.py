@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
-from sqlalchemy import (Column, ForeignKey, Integer, LargeBinary, MetaData, String,
+from sqlalchemy import (Column, ForeignKey, Integer, LargeBinary, MetaData, String, func,
                         Table, Unicode, UnicodeText, UniqueConstraint, create_engine,
                         insert, select, update)
 from sqlalchemy.exc import IntegrityError
@@ -328,3 +328,35 @@ class WorkbenchStore:
 
     def event_history(self, project_id):
         return self.history(project_id, events)
+
+    def task_runs(self, project_id, spec_id, limit=20):
+        self.spec(project_id, spec_id)
+        with self.engine.connect() as connection:
+            rows = [dict(row) for row in connection.execute(select(runs).where(
+                runs.c.project_id == project_id, runs.c.spec_id == spec_id)
+                .order_by(runs.c.created_at.desc(), runs.c.id.desc()).limit(limit)).mappings()]
+        for row in rows:
+            row['result'] = json.loads(row.pop('result_json'))
+        return rows
+
+    def task_summaries(self, project_id):
+        ranked = select(runs.c.spec_id, runs.c.id, runs.c.status, runs.c.created_at,
+            func.row_number().over(partition_by=runs.c.spec_id,
+                order_by=[runs.c.created_at.desc(), runs.c.id.desc()]).label('position'))
+        ranked = ranked.where(runs.c.project_id == project_id).subquery()
+        with self.engine.connect() as connection:
+            return {row['spec_id']: dict(row) for row in connection.execute(
+                select(ranked).where(ranked.c.position == 1)).mappings()}
+
+    def task_events(self, project_id, spec_id, run_ids):
+        self.spec(project_id, spec_id)
+        selected = []
+        with self.engine.connect() as connection:
+            for row in connection.execute(select(events).where(events.c.project_id == project_id)
+                    .order_by(events.c.created_at.desc())).mappings():
+                payload = json.loads(row['payload_json'])
+                if payload.get('spec_id') == spec_id or payload.get('run_id') in run_ids:
+                    selected.append({**dict(row), 'payload': payload})
+                    if len(selected) == 100:
+                        break
+        return list(reversed(selected))

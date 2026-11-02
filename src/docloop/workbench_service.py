@@ -1,5 +1,6 @@
 """工作台业务：引用资料、本地 Skills、需求草稿、不可变审批与受控运行。"""
 import json
+import yaml
 from pathlib import Path
 from uuid import uuid4
 from .contracts import TaskContext
@@ -8,6 +9,10 @@ from .model_gateway import ModelGateway
 from .project import select_context
 from .skill_runtime import SkillRegistry
 from .workflow import Workflow
+
+
+def encoded_detail(value):
+    return json.dumps(value, ensure_ascii=False, indent=2)
 
 
 class WorkbenchService:
@@ -29,7 +34,78 @@ class WorkbenchService:
         project_id = project_id or projects[0]['id']
         return {'environment': self.environment(), 'projects': projects, 'project_id': project_id,
                 'documents': self.store.documents(project_id), 'specs': self.store.specs(project_id),
-                'runs': self.store.history(project_id), 'events': self.store.event_history(project_id)}
+                'runs': self.store.history(project_id), 'events': self.store.event_history(project_id),
+                'task_summaries': self.store.task_summaries(project_id)}
+
+    def execution(self, project_id, spec_id):
+        spec = self.store.spec(project_id, spec_id)
+        task_runs = self.store.task_runs(project_id, spec_id)
+        run_ids = {run['id'] for run in task_runs}
+        records = []
+        artifacts = [{'name': 'spec.md', 'content': spec['content'], 'sha256': spec['sha256'],
+                      'path': f'database-spec:{spec_id}:revision:{spec["revision"]}'}]
+        for index, source in enumerate(spec['skill_sources']):
+            records.append({'id': f'source-{index}', 'type': 'skill', 'title': '规格生成使用的本地 Skill',
+                'summary': source['ref'], 'detail': encoded_detail(source), 'result': 'loaded', 'created_at': None})
+        labels = {'spec.created': '需求规格已生成', 'spec.saved': '规格修改已保存',
+                  'spec.approved': '当前版本已审批', 'run.started': '开始受控运行',
+                  'run.finished': '受控运行已返回', 'run.interrupted': '运行被中断'}
+        run_events = {}
+        for event in self.store.task_events(project_id, spec_id, run_ids):
+            payload = event['payload']
+            record = {'id': event['id'], 'type': 'error' if event['kind'] == 'run.interrupted' else 'stage',
+                'title': labels.get(event['kind'], event['kind']), 'summary': payload.get('status', ''),
+                'detail': encoded_detail(payload), 'created_at': event['created_at'],
+                'result': payload.get('status', 'recorded'), 'run_id': payload.get('run_id'), 'event_kind': event['kind']}
+            if payload.get('run_id'):
+                run_events.setdefault(payload['run_id'], []).append(record)
+            else:
+                records.append(record)
+        stage_names = {'_approval': '运行内基线检查', '_plan': '生成沙箱执行计划',
+                       '_implement': '写入受控文件并提交', '_verify': '独立验证',
+                       '_review': '证据审查', '_archive': '归档受控产物'}
+        for run in reversed(task_runs):
+            lifecycle = run_events.get(run['id'], [])
+            records.extend(event for event in lifecycle if event['event_kind'] == 'run.started')
+            base = self.store.root / 'runs' / run['id']
+            trace = base / '.docloop/traces' / f'{run["id"]}.jsonl'
+            if trace.is_file() and trace.resolve().is_relative_to(self.store.root):
+                for index, line in enumerate(trace.read_text(encoding='utf-8', errors='replace').splitlines()[:1000]):
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue  # 读取正在追加的JSONL时，下一次刷新再消费未写完的末行。
+                    is_skill = entry.get('event') == 'skill.loaded'
+                    records.append({'id': f'{run["id"]}-trace-{index}', 'run_id': run['id'],
+                        'type': 'skill' if is_skill else ('error' if entry.get('status') in {'blocked', 'failed'} else 'stage'),
+                        'title': '加载本地 Skill' if is_skill else stage_names.get(entry.get('stage'), entry.get('stage', '阶段记录')),
+                        'summary': entry.get('ref', entry.get('status', '')), 'detail': encoded_detail(entry),
+                        'result': 'loaded' if is_skill else entry.get('status', 'recorded'), 'created_at': None})
+            changes = base / '.docloop/changes' / run['id']
+            evidence = changes / 'evidence.yaml'
+            if run['status'] != 'in_progress' and evidence.is_file() and evidence.resolve().is_relative_to(self.store.root):
+                report = yaml.safe_load(evidence.read_text(encoding='utf-8'))['verification']
+                for check in report.get('checks', []):
+                    records.append({'id': f'{run["id"]}-{check["id"]}', 'run_id': run['id'],
+                        'type': 'verification' if check['result'] == 'passed' else 'error',
+                        'title': f'验证检查 {check["id"]}', 'summary': check['observed'],
+                        'detail': encoded_detail(check), 'result': check['result'], 'created_at': None})
+            if run['id'] == task_runs[0]['id'] and run['status'] != 'in_progress':
+                for name in ('tasks.md', 'checkList.md', 'evidence.yaml', 'review.yaml'):
+                    file = changes / name
+                    if file.is_file() and file.resolve().is_relative_to(self.store.root):
+                        raw = file.read_bytes()
+                        artifacts.append({'name': name, 'content': raw.decode('utf-8'), 'sha256': sha256(raw),
+                                          'path': file.relative_to(self.store.root).as_posix()})
+                result_file = base / '.docloop/sessions' / run['id'] / 'result.json'
+                if result_file.is_file() and result_file.resolve().is_relative_to(self.store.root):
+                    raw = result_file.read_bytes()
+                    artifacts.append({'name': 'result.json', 'content': raw.decode('utf-8'), 'sha256': sha256(raw),
+                                      'path': result_file.relative_to(self.store.root).as_posix()})
+            records.extend(event for event in lifecycle if event['event_kind'] != 'run.started')
+        return {'spec_id': spec_id, 'runs': task_runs, 'records': records, 'artifacts': artifacts,
+                'record_scope': '最近20次受控运行与最多100条任务审计；完整证据保留在运行目录。',
+                'business_acceptance': False}
 
     def generate_spec(self, project_id, title, requirement, mode='sandbox'):
         if not title.strip() or len(title) > 200 or not requirement.strip() or len(requirement) > 12000:
