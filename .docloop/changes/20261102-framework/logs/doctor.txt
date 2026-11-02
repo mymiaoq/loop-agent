@@ -1,0 +1,43 @@
+$ D:\项目\agent-loop\.venv\Scripts\python.exe -m docloop doctor
+exit=0
+{
+  "status": "passed",
+  "profile": "docloop-platform",
+  "agents": [
+    "implement-agent",
+    "orchestrator-agent",
+    "review-agent",
+    "spec-agent",
+    "verify-agent"
+  ],
+  "skills": [
+    "api-contract",
+    "audit-recorder",
+    "backend-code-generator",
+    "checklist-create",
+    "component-generator",
+    "document-parser",
+    "frontend-design",
+    "frontend-quality-check",
+    "plan-create",
+    "project-archiving",
+    "project-bootstrap",
+    "recovery-diagnosis",
+    "security-check",
+    "spec-create",
+    "test-runner"
+  ],
+  "active_rules": [
+    "code-standard",
+    "verification-standard"
+  ],
+  "superpowers": {
+    "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+    "enabled": false,
+    "runtime_loaded": false
+  },
+  "mode": "framework",
+  "limitations": [
+    "Configuration validation does not prove model compliance or live business execution."
+  ]
+}

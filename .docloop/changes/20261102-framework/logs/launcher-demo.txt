@@ -1,0 +1,17 @@
+DocLoop 项目框架 · 受控离线演示
+
+1. 正常流程演示  2. 验证失败演示  3. 查看配置检查  0. 退出
+请选择 [1]：
+# 受控演示 Spec
+
+AC-001：沙箱 result.json 中 value=42，验证者重新执行检查。
+本演示仅检查工作流，不代表真实业务功能验收。
+
+Spec：C:\Users\qingx\AppData\Local\Temp\tmp78fxvzip\demo\.docloop\changes\demo-20261102-112552-e8c6e5\spec.md
+SHA256：6a90e4f370be329f36693d3f068640a4d55bd934e2c64c0dcaa5e7007f05c849
+Change ID：demo-20261102-112552-e8c6e5
+
+审阅后输入 APPROVE 明确批准本 Spec，其他输入保留草稿：
+演示状态：accepted（mode=demo）
+产物目录：C:\Users\qingx\AppData\Local\Temp\tmp78fxvzip\demo\.docloop\changes\demo-20261102-112552-e8c6e5
+归档：C:\Users\qingx\AppData\Local\Temp\tmp78fxvzip\demo\文档\变更记录\demo-20261102-112552-e8c6e5

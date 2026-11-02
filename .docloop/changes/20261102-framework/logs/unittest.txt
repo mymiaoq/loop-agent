@@ -1,0 +1,35 @@
+$ D:\项目\agent-loop\.venv\Scripts\python.exe -m unittest discover -s tests -v
+exit=0
+test_allowlist_is_exact_and_scope_is_resolved (test_adapters.ToolTests.test_allowlist_is_exact_and_scope_is_resolved) ... ok
+test_second_writer_cannot_enter_same_run (test_adapters.ToolTests.test_second_writer_cannot_enter_same_run) ... ok
+test_timeout_stops_subprocess (test_adapters.ToolTests.test_timeout_stops_subprocess) ... ok
+test_missing_coverage_or_non_pass_cannot_verify (test_evidence.EvidenceTests.test_missing_coverage_or_non_pass_cannot_verify) ... ok
+test_producer_observation_and_commit_required (test_evidence.EvidenceTests.test_producer_observation_and_commit_required) ... ok
+test_approval_required_and_hash_must_match (test_governance.GovernanceTests.test_approval_required_and_hash_must_match) ... ok
+test_baseline_cannot_be_overwritten_or_silently_updated (test_governance.GovernanceTests.test_baseline_cannot_be_overwritten_or_silently_updated) ... ok
+test_paths_and_empty_approver_rejected (test_governance.GovernanceTests.test_paths_and_empty_approver_rejected) ... ok
+test_role_cannot_skip_verification (test_governance.GovernanceTests.test_role_cannot_skip_verification) ... ok
+test_cli_demo_runs_in_separate_process_and_invalid_hash_exits_nonzero (test_project.ProjectTests.test_cli_demo_runs_in_separate_process_and_invalid_hash_exits_nonzero) ... ok
+test_doctor_rejects_missing_skill (test_project.ProjectTests.test_doctor_rejects_missing_skill) ... ok
+test_profile_loads_only_applicable_rules_and_validates_contracts (test_project.ProjectTests.test_profile_loads_only_applicable_rules_and_validates_contracts) ... ok
+test_budgets_are_independent (test_reliability.ReliabilityTests.test_budgets_are_independent) ... ok
+test_business_errors_are_not_retried (test_reliability.ReliabilityTests.test_business_errors_are_not_retried) ... ok
+test_circuit_blocks_next_operation (test_reliability.ReliabilityTests.test_circuit_blocks_next_operation) ... ok
+test_elapsed_limits (test_reliability.ReliabilityTests.test_elapsed_limits) ... ok
+test_no_progress_and_repair_limit (test_reliability.ReliabilityTests.test_no_progress_and_repair_limit) ... ok
+test_transient_errors_stop_after_three_retries (test_reliability.ReliabilityTests.test_transient_errors_stop_after_three_retries) ... ok
+test_approval_recomputes_acceptance_ids_from_reviewed_spec (test_workflow.WorkflowTests.test_approval_recomputes_acceptance_ids_from_reviewed_spec) ... ok
+test_budget_survives_new_workflow_instance (test_workflow.WorkflowTests.test_budget_survives_new_workflow_instance) ... ok
+test_explicit_recovery_preserves_approval_and_resumes_failed_stage (test_workflow.WorkflowTests.test_explicit_recovery_preserves_approval_and_resumes_failed_stage) ... ok
+test_failed_verification_never_reviews_or_archives (test_workflow.WorkflowTests.test_failed_verification_never_reviews_or_archives) ... ok
+test_human_approval_wait_does_not_consume_execution_budget (test_workflow.WorkflowTests.test_human_approval_wait_does_not_consume_execution_budget) ... ok
+test_pause_restart_approve_and_archive (test_workflow.WorkflowTests.test_pause_restart_approve_and_archive) ... ok
+test_programmatic_start_requires_explicit_demo_mode (test_workflow.WorkflowTests.test_programmatic_start_requires_explicit_demo_mode) ... ok
+test_resume_does_not_restart_terminal_run (test_workflow.WorkflowTests.test_resume_does_not_restart_terminal_run) ... ok
+test_stale_hash_and_real_adapter_fail_closed (test_workflow.WorkflowTests.test_stale_hash_and_real_adapter_fail_closed) ... ok
+test_uncommitted_repair_cannot_validate_against_old_commit (test_workflow.WorkflowTests.test_uncommitted_repair_cannot_validate_against_old_commit) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 15.140s
+
+OK

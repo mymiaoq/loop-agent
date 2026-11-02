@@ -1,0 +1,88 @@
+verification:
+  change_id: 20261102-framework
+  status: passed
+  producer: codex-main
+  lifecycle_status: implemented
+  scope: framework checks and controlled demo only
+  commit: ff384766cd333f79396ac2284ab79ee1b66500cc
+  checks:
+  - id: V-001
+    test_case_id: TC-001
+    requirement_ids:
+    - AC-001
+    type: static
+    command_or_method: doctor + test_project
+    result: passed
+    observed: 5 roles, 15 unique Skills; platform rules isolated; missing Skill rejected
+    evidence: logs/doctor.txt
+  - id: V-002
+    test_case_id: TC-002
+    requirement_ids:
+    - AC-002
+    type: static
+    command_or_method: test_governance + test_workflow
+    result: passed
+    observed: Role escalation and illegal transition rejected; graph history follows
+      gates
+    evidence: logs/unittest.txt
+  - id: V-003
+    test_case_id: TC-003
+    requirement_ids:
+    - AC-003
+    type: static
+    command_or_method: test_governance + Windows Git clone
+    result: passed
+    observed: Current Hash approval, immutable baseline, tampering rejection; CRLF
+      checkout preserves baseline bytes
+    evidence: logs/windows-checkout.txt
+  - id: V-004
+    test_case_id: TC-004
+    requirement_ids:
+    - AC-004
+    type: static
+    command_or_method: test_workflow
+    result: passed
+    observed: Real LangGraph SQLite interruption, restart and explicit recovery; human
+      wait excluded from execution budget
+    evidence: logs/unittest.txt
+  - id: V-005
+    test_case_id: TC-005
+    requirement_ids:
+    - AC-005
+    type: static
+    command_or_method: test_reliability + test_adapters + test_workflow
+    result: passed
+    observed: 3 retries, repair/no-progress limits, circuit, tool timeout, run lock,
+      persistent budgets passed
+    evidence: logs/unittest.txt
+  - id: V-006
+    test_case_id: TC-006
+    requirement_ids:
+    - AC-006
+    type: static
+    command_or_method: test_evidence + test_workflow
+    result: passed
+    observed: Missing/failed/not_run evidence denied; dirty Commit rejection; review
+      and hash archive tested
+    evidence: logs/unittest.txt
+  - id: V-007
+    test_case_id: TC-007
+    requirement_ids:
+    - AC-007
+    type: static
+    command_or_method: CLI subprocess + Windows batch + launcher + uv build
+    result: passed
+    observed: CLI and interactive demo complete; native batch menu opens; wheel and
+      sdist built
+    evidence: logs/launcher-demo.txt
+  independent_review: review.yaml
+  failures: []
+  remaining_risks:
+  - Real LLM, business implementation, worktree adapter, browser and non-Markdown
+    parsers are not connected.
+  - Skill structural checks do not prove model adherence.
+  - This implementation report is not a production accepted status.
+artifacts:
+  .gitignore: 684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1
+  docloop_agent-0.1.0-py3-none-any.whl: 33dedd8d10cf52bd9356a6446c268c6cf207b1e0267d7276fa69d9c3b9bcccdb
+  docloop_agent-0.1.0.tar.gz: 5581d8694c59f86d02d1d9d2b0ca216a024c0f2d1d5beb2d0ff78637e5fa0710
