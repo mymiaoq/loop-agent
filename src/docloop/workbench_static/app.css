@@ -1833,3 +1833,29 @@ dialog::backdrop {
     transition: none !important;
   }
 }
+/* 产物文档中心：目录与只读正文独立滚动。 */
+#modal.document-modal { width: min(1120px, calc(100vw - 32px)); height: 84dvh; max-height: 92dvh; }
+.document-modal .dialog-head, .document-modal .dialog-actions { flex-shrink: 0; }
+.document-modal .dialog-body { padding: 0; flex: 1; overflow: hidden; }
+.document-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); height: 100%; min-height: 0; }
+#deliverable-list { display: flex; flex-direction: column; gap: 6px; overflow: auto; padding: 14px; background: #f4f7f8; border-right: 1px solid var(--line); }
+#deliverable-list button { flex-shrink: 0; width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 10px; }
+#deliverable-list button[aria-current=true] { background: #e3edf9; color: #013f97; border-color: #8ba9d0; }
+#deliverable-list strong, #deliverable-list small { display: block; }
+#deliverable-list small { margin-top: 4px; font-size: 11px; color: #5a6a7b; }
+#document-preview { overflow: auto; padding: 20px 24px; min-width: 0; overflow-wrap: anywhere; }
+#document-preview .document-name { font-weight: 600; color: #24354b; }
+#document-preview code { font-size: 11px; }
+#document-preview pre { max-height: none; font-size: 12px; line-height: 1.8; }
+#document-preview .document-content { margin-top: 22px; }
+#document-preview h2 { font-size: 20px; margin: 18px 0 14px; }
+#document-preview h3 { font-size: 16px; margin: 22px 0 10px; }
+#document-preview h4 { font-size: 13px; margin: 18px 0 8px; }
+#document-preview p { color: #34465a; line-height: 1.85; white-space: pre-wrap; }
+#document-preview blockquote { border-left: 3px solid #8ba9d0; background: #f0f5fb; padding: 12px; margin: 16px 0; font-size: 12px; line-height: 1.8; }
+@media(max-width: 800px) {
+  #modal.document-modal { width: calc(100vw - 20px); height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); }
+  .document-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 150px minmax(0, 1fr); }
+  #deliverable-list { border-right: 0; border-bottom: 1px solid var(--line); }
+  #document-preview { padding: 14px; }
+}

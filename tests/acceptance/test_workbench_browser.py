@@ -78,7 +78,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         expect(page.locator('#spec-detail')).to_be_visible()
         expect(page.locator('#references')).to_contain_text('审批来源')
         original = page.locator('#spec-content').input_value()
-        edited = original + '\nAC-003：验收工作台刷新恢复。\n'
+        edited = original + '\nAC-003：验收工作台刷新恢复。\n<script>window.artifactInjected=true</script>\n'
         page.locator('#spec-content').fill(edited)
         page.evaluate('refresh(state.project_id)')
         self.assertEqual(page.locator('#spec-content').input_value(), edited,
@@ -129,7 +129,29 @@ class WorkbenchBrowserTests(unittest.TestCase):
         self.assertEqual(page.locator('.record:not([open])').count(), 0)
         page.locator('#expand-all').uncheck()
         page.locator('#artifacts').click()
-        expect(page.locator('#modal-body')).to_contain_text('result.json')
+        expect(page.locator('#document-preview')).to_contain_text('任务交付总览')
+        expect(page.locator('#document-preview')).to_contain_text('不代表真实业务验收')
+        page.screenshot(path=str(self.evidence / 'deliverables-overview.png'), full_page=True,
+                        animations='disabled')
+        page.locator('#deliverable-list button').filter(has_text='当前需求规格').click()
+        expect(page.locator('#document-preview')).to_contain_text('<script>')
+        self.assertFalse(page.evaluate('Boolean(window.artifactInjected)'))
+        page.locator('#deliverable-list button').filter(has_text='验证证据').first.click()
+        expect(page.locator('#document-preview')).to_contain_text('value=42')
+        page.locator('#deliverable-list button').filter(has_text='归档清单').first.click()
+        expect(page.locator('#document-preview')).to_contain_text('files:')
+        with page.expect_download() as saved:
+            page.get_by_role('button', name='下载全部产物').click()
+        downloaded = Path(saved.value.path()).read_text(encoding='utf-8')
+        self.assertIn('JSON parsed independently', downloaded)
+        self.assertIn('decisions.md', downloaded)
+        self.assertNotIn('<script', page.locator('#document-preview').inner_html())
+        page.screenshot(path=str(self.evidence / 'deliverables-desktop.png'), full_page=True,
+                        animations='disabled')
+        page.set_viewport_size({'width': 390, 'height': 844})
+        self.assertTrue(page.locator('#modal').evaluate('(n)=>n.scrollWidth <= n.clientWidth + 1'))
+        page.screenshot(path=str(self.evidence / 'deliverables-mobile.png'), full_page=True,
+                        animations='disabled')
         page.keyboard.press('Escape')
         for width in (1366, 1920, 390):
             page.set_viewport_size({'width': width, 'height': 1000})

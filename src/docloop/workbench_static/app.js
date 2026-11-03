@@ -302,6 +302,7 @@ function renderRuns() {
 }
 
 function modal(title, nodes, actions = []) {
+  $('modal').classList.remove('document-modal');
   $('modal-title').textContent = title;
   $('modal-body').replaceChildren(...nodes);
   $('modal-actions').replaceChildren(...actions);
@@ -915,13 +916,91 @@ $('new-task').addEventListener('click', () => {
   $('requirement').focus();
 });
 $('artifacts').addEventListener('click', () => {
-  const nodes = (execution?.artifacts || []).map(artifact => {
-    const section = el('section');
-    section.append(el('h2', artifact.name), el('code', (artifact.path || '') + '\n' + (artifact.sha256 || '')), el('pre', artifact.content));
-    return section;
-  });
-  modal('任务产物与证据', nodes.length ? nodes : [el('p', '当前任务暂无产物。')]);
+  action(openDeliverables, $('artifacts'));
 });
+
+let documentEpoch = 0;
+$('modal').addEventListener('close', () => { documentEpoch++; });
+function showDocument(content, markdown) {
+  const view = el('div', undefined, 'document-content');
+  if (!markdown) { view.append(el('pre', content)); return view; }
+  let fence = 0, code = [];
+  for (const line of content.split('\n')) {
+    const marker = line.match(/^(`{3,})/);
+    if (marker && (!fence || marker[1].length >= fence)) {
+      if (fence) { view.append(el('pre', code.join('\n'))); code = []; fence = 0; }
+      else fence = marker[1].length;
+    } else if (fence) code.push(line);
+    else if (/^#{1,4} /.test(line)) {
+      const heading = line.match(/^(#{1,4}) (.*)/);
+      view.append(el('h' + Math.min(heading[1].length + 1, 6), heading[2]));
+    } else if (line.trim()) view.append(el(line.startsWith('> ') ? 'blockquote' : 'p', line.replace(/^> /, '')));
+  }
+  if (code.length) view.append(el('pre', code.join('\n')));
+  return view;
+}
+function downloadDocument(doc) {
+  const url = URL.createObjectURL(new Blob([doc.content], {type: 'text/plain;charset=utf-8'}));
+  const link = el('a'); link.href = url; link.download = doc.name; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function openDeliverables() {
+  const pid = state.project_id, sid = selected.id;
+  const endpoint = '/api/projects/' + encodeURIComponent(pid) + '/specs/' + encodeURIComponent(sid) + '/deliverables';
+  const list = el('nav'); list.id = 'deliverable-list'; list.setAttribute('aria-label', '产物文档');
+  const preview = el('article'); preview.id = 'document-preview'; preview.tabIndex = 0;
+  const layout = el('div', undefined, 'document-layout'); layout.append(list, preview);
+  const save = el('button', '下载当前文档'); save.disabled = true;
+  const bundle = el('button', '下载全部产物');
+  modal('任务产物文档', [layout], [save, bundle]);
+  $('modal').classList.add('document-modal');
+  const epoch = ++documentEpoch;
+  const current = () => epoch === documentEpoch && $('modal').open && state.project_id === pid && selected?.id === sid;
+  let request = 0, active = null;
+  async function load(id, button) {
+    const ticket = ++request; active = null; save.disabled = true;
+    preview.replaceChildren(el('p', '正在读取文档…'));
+    try {
+      const doc = await api(endpoint + '/' + encodeURIComponent(id));
+      if (!current() || ticket !== request) return;
+      active = doc; save.disabled = false;
+      list.querySelectorAll('button').forEach(b => b.setAttribute('aria-current', String(b === button)));
+      preview.replaceChildren(el('p', doc.name, 'document-name'), el('p', doc.path, 'document-origin'),
+                              el('code', 'SHA-256 · ' + doc.sha256),
+                              showDocument(doc.content, doc.name.endsWith('.md')));
+      preview.scrollTop = 0;
+    } catch (error) {
+      if (current() && ticket === request) preview.replaceChildren(el('p', error.message, 'error'));
+    }
+  }
+  save.addEventListener('click', () => { if (active) downloadDocument(active); });
+  bundle.addEventListener('click', () => action(async () => {
+    try {
+      const doc = await api(endpoint + '/bundle'); if (current()) downloadDocument(doc);
+    } catch (error) {
+      if (current()) preview.prepend(el('p', error.message, 'error'));
+    }
+  }, bundle));
+  preview.append(el('p', '正在整理文档目录…'));
+  let catalog;
+  try { catalog = await api(endpoint); }
+  catch (error) {
+    if (current()) preview.replaceChildren(el('p', error.message, 'error'));
+    return;
+  }
+  if (!current()) return;
+  const overview = el('button', '交付总览'); overview.addEventListener('click', () => load('overview', overview));
+  list.append(overview);
+  catalog.documents.forEach(doc => {
+    const button = el('button');
+    button.append(el('strong', doc.title), el('small', doc.category + ' · ' + doc.name),
+                  el('small', doc.run_id ? '运行 · ' + doc.run_id.slice(0, 8) : '当前任务'));
+    button.disabled = !doc.available; button.title = doc.note || doc.path;
+    button.addEventListener('click', () => load(doc.id, button)); list.append(button);
+  });
+  catalog.warnings.forEach(message => list.append(el('p', message, 'muted')));
+  await load('overview', overview);
+}
 
 window.refresh = refresh;
 Object.defineProperty(window, 'docloopState', {get: () => state});

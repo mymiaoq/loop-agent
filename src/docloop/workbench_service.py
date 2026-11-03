@@ -16,6 +16,15 @@ def encoded_detail(value):
 
 
 class WorkbenchService:
+    def deliverables(self, project_id, spec_id):
+        from .deliverables import catalog
+        data = catalog(self.store, project_id, spec_id)
+        return {'documents': data['documents'], 'warnings': data['warnings'], 'run_count': len(data['runs'])}
+
+    def deliverable(self, project_id, spec_id, document_id):
+        from .deliverables import document
+        return document(self.store, project_id, spec_id, document_id)
+
     def __init__(self, project_root: Path, store, gateway=None):
         self.project_root = Path(project_root).resolve()
         self.store = store

@@ -183,6 +183,14 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     def execution(project_id: str, spec_id: str):
         return service.execution(project_id, spec_id)
 
+    @app.get('/api/projects/{project_id}/specs/{spec_id}/deliverables')
+    def deliverables(project_id: str, spec_id: str):
+        return service.deliverables(project_id, spec_id)
+
+    @app.get('/api/projects/{project_id}/specs/{spec_id}/deliverables/{document_id}')
+    def deliverable(project_id: str, spec_id: str, document_id: str):
+        return service.deliverable(project_id, spec_id, document_id)
+
     @app.put('/api/projects/{project_id}/specs/{spec_id}')
     def edit_spec(project_id: str, spec_id: str, body: SpecEdit):
         return store.save_spec(project_id, spec_id, body.content, body.revision)

@@ -20,6 +20,10 @@ Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作
 
 根目录仅保留 **启动工作台.cmd** 启动入口；受控演示从工作台内运行。
 
+“查看产物”打开文档目录，默认显示交付总览。可以逐份查看当前规格及该任务全部历史运行现存的计划、清单、决策、审批基线、证据、日志、恢复和归档材料，下载当前文档或全部Markdown汇编。不会读取模型输入快照、密钥、数据库或Checkpoint；未生成的业务材料不会补写成已完成。单份文本上限2 MiB，全部汇编上限8 MiB，超限会提示本地处理。
+
+技术方案逐章对照、22项AT和下一步优先级见 [.docloop/docs/technical-design-comparison.md](.docloop/docs/technical-design-comparison.md)。
+
 选择正常或失败演示，阅读显示的 Spec 与 SHA256，输入 `APPROVE` 后才执行。其他输入保留 draft；每次演示生成独立 Change ID。正常演示会写实际沙箱文件、Git Commit、独立子进程检查日志和 Hash 归档。失败演示预期停在 blocked，属于门禁生效。
 
 ## 开发与命令

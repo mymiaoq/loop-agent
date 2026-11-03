@@ -70,6 +70,8 @@ class WorkbenchApiTests(unittest.TestCase):
             json={'content': 'AC-001: edit', 'revision': 999}).status_code, 409)
         self.assertEqual(self.client.put('/api/projects/' + other + '/specs/' + spec['id'], headers=self.headers,
             json={'content': 'AC-001: cross-project', 'revision': 1}).status_code, 404)
+        self.assertEqual(self.client.get('/api/projects/' + other + '/specs/' + spec['id'] +
+            '/deliverables/bundle').status_code, 404)
 
     def test_health_identity_and_stop_require_local_session(self):
         health = self.client.get('/api/health').json()

@@ -9,6 +9,52 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WorkbenchServiceTests(unittest.TestCase):
+    def test_deliverables_cover_history_and_preserve_sources(self):
+        from docloop.workbench_store import NotFound
+        spec = self.service.generate_spec(self.pid, '交付目录', '查看全部正式产物', 'sandbox')
+        self.store.approve_spec(self.pid, spec['id'], spec['sha256'], 1, 'tester')
+        failed = self.service.run_demo(self.pid, spec['id'], 'verification-failure')
+        passed = self.service.run_demo(self.pid, spec['id'])
+        catalog = self.service.deliverables(self.pid, spec['id'])
+        paths = [item['path'] for item in catalog['documents']]
+        self.assertFalse(any('/agent-inputs/' in path for path in paths))
+        self.assertTrue(any('decisions.md' in path for path in paths))
+        self.assertTrue(any('verification.txt' in path for path in paths))
+        self.assertTrue(any('manifest.yaml' in path for path in paths))
+        self.assertEqual({item['run_id'] for item in catalog['documents'] if item['run_id']},
+                         {failed['id'], passed['id']})
+        report = self.service.deliverable(self.pid, spec['id'], 'overview')
+        self.assertIn('不代表真实业务验收', report['content'])
+        self.assertIn(failed['id'], report['content'])
+        bundle = self.service.deliverable(self.pid, spec['id'], 'bundle')
+        self.assertIn('JSON parsed independently', bundle['content'])
+        self.assertIn('decisions.md', bundle['content'])
+        self.assertEqual(self.store.spec(self.pid, spec['id'])['sha256'], spec['sha256'])
+        other = self.store.create_project('其他项目')['id']
+        with self.assertRaises(NotFound):
+            self.service.deliverable(other, spec['id'], 'bundle')
+        with self.assertRaises(NotFound):
+            self.service.deliverable(self.pid, spec['id'], '../../inputs/secret.json')
+
+    def test_deliverables_history_is_not_limited_to_execution_window(self):
+        spec = self.service.generate_spec(self.pid, '全部历史', '产物目录不截断历史', 'sandbox')
+        self.store.approve_spec(self.pid, spec['id'], spec['sha256'], 1, 'tester')
+        for _ in range(22):
+            run = self.store.start_run(self.pid, spec['id'])
+            path = self.store.root / 'runs' / run['id'] / '.docloop/changes' / run['id']
+            path.mkdir(parents=True)
+            (path / 'tasks.md').write_text('历史计划', encoding='utf-8')
+            self.store.finish_run(self.pid, run['id'], {'status': 'blocked'})
+        catalog = self.service.deliverables(self.pid, spec['id'])
+        self.assertEqual(catalog['run_count'], 22)
+        self.assertEqual(len(catalog['documents']), 23)
+        (path / 'logs').mkdir()
+        (path / 'logs/large.txt').write_bytes(b'x' * (2 * 1024 * 1024 + 1))
+        catalog = self.service.deliverables(self.pid, spec['id'])
+        self.assertFalse(next(d for d in catalog['documents'] if d['name'] == 'large.txt')['available'])
+        with self.assertRaisesRegex(ValueError, '超限'):
+            self.service.deliverable(self.pid, spec['id'], 'bundle')
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
