@@ -116,7 +116,7 @@ class ModelGateway:
                 try:
                     return self._codex().complete(messages, cancel_event=signal)
                 except RuntimeError:
-                    raise ModelUnavailable('GPT调用未完成，请检查Codex登录、模型权限、取消或超时状态。') from None
+                    raise ModelUnavailable('GPT调用未完成。请检查本机Codex登录、该模型权限、取消或超时状态；如果持续出现 405/Method Not Allowed，请重新登录Codex，或切换演示规格。') from None
             settings = (profile['base_url'], profile['api_model'], profile['api_key'])
         else:
             with self._lock:
@@ -141,6 +141,8 @@ class ModelGateway:
                 raise ModelUnavailable('模型调用已取消。')
             if response.status_code == 429 or response.status_code >= 500:
                 raise ConnectionError('model provider temporarily unavailable')
+            if response.status_code == 405:
+                raise ModelUnavailable('模型接口返回HTTP 405（Method Not Allowed）。请确认 Base URL 是兼容 Chat Completions 的接口根地址（例如 https://api.deepseek.com），不要填写网页地址或工作台地址。')
             if response.status_code != 200:
                 raise ModelUnavailable(f'模型接口返回HTTP {response.status_code}，请检查地址、模型名称和凭据。')
             if len(response.content) > 2 * 1024 * 1024:

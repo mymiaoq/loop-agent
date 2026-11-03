@@ -111,7 +111,12 @@ async function api(path, options = {}) {
   } catch {
     throw new Error('服务响应无法读取，请稍后重试。');
   }
-  if (!response.ok) throw new Error(body.detail || `请求失败（${response.status}）`);
+  if (!response.ok) {
+    if (response.status === 405) {
+      throw new Error('当前操作未被工作台接受（Method Not Allowed）。请刷新页面；如果刚更新过版本，请重启工作台后重试。');
+    }
+    throw new Error(body.detail || `请求失败（${response.status}）`);
+  }
   return body;
 }
 async function action(fn, button) {
@@ -230,8 +235,21 @@ function render() {
 }
 
 function renderGenerationMode() {
+  const model = state?.environment?.model || {};
   $('demo-generation').checked = demoGeneration;
-  $('composer-mode').textContent = demoGeneration ? '演示规格 · 不调用模型' : '新建任务';
+  let label, warn = false;
+  if (demoGeneration) {
+    label = '演示规格 · 不调用模型';
+  } else if (model.configured) {
+    label = '模型：' + (model.label || model.model || '已配置');
+  } else {
+    label = '模型待配置 · 点击用演示';
+    warn = true;
+  }
+  $('composer-mode').textContent = label;
+  $('composer-mode').classList.toggle('warn', warn);
+  $('composer-mode').title = demoGeneration ? '点击切换到真实模型生成' :
+    warn ? '当前模型未配置；点击启用演示规格' : '点击切换到演示规格';
   $('generate').title = demoGeneration ? '生成演示规格' : '使用当前模型生成需求规格';
 }
 function renderSettings() {
@@ -389,7 +407,7 @@ function syncButtons() {
   $('new-project').disabled = busy > 0;
   $('new-task').disabled = busy > 0;
   document.querySelectorAll('.task-item').forEach(item => { item.disabled = busy > 0; });
-  ['requirement', 'demo-generation', 'active-model', 'model'].forEach(id => { $(id).disabled = busy > 0; });
+  ['requirement', 'demo-generation', 'active-model', 'model', 'composer-mode'].forEach(id => { $(id).disabled = busy > 0; });
   $('spec-content').readOnly = busy > 0 || approved;
   $('artifacts').disabled = !execution?.artifacts?.length || busy > 0;
   $('copy-hash').disabled = !selected || busy > 0;
@@ -643,7 +661,9 @@ $('generate').addEventListener('click', () => action(async () => {
   const requirement = $('requirement').value.trim();
   const title = requirement.split('\n')[0].slice(0, 80);
   if (!requirement) throw new Error('请填写新任务需求。');
-  if (!demoGeneration && !state.environment.model.configured) throw new Error('当前模型未配置，请先在设置中保存连接；测试流程可明确启用演示规格。');
+  if (!demoGeneration && !state.environment.model.configured) {
+    throw new Error('当前模型未配置。请打开设置保存模型连接，或点击输入框右上角的“模型待配置 · 点击用演示”启用演示规格。');
+  }
   const pid = state.project_id;
   const spec = await api(projectPath() + '/specs', {
     method: 'POST',
@@ -838,6 +858,19 @@ $('demo-generation').addEventListener('change', () => {
   catch { notice('当前浏览器仅在此页面保留生成模式选择。'); }
   renderGenerationMode();
 });
+$('composer-mode').addEventListener('click', () => {
+  demoGeneration = !demoGeneration;
+  try { sessionStorage.setItem('docloop:demo-generation', String(demoGeneration)); }
+  catch { notice('当前浏览器仅在此页面保留生成模式选择。'); }
+  renderGenerationMode();
+  if (demoGeneration) {
+    notice('已切换为演示规格：生成不调用模型。');
+  } else if (!state?.environment?.model?.configured) {
+    notice('真实模型尚未配置，请在设置中保存模型连接。', true);
+  } else {
+    notice('已切换为真实模型生成。');
+  }
+});
 $('register-repository').addEventListener('click', () => action(async () => {
   const pid = state.project_id;
   await api(projectPath() + '/repository', {method: 'POST', body: JSON.stringify({path: $('repository-path').value.trim()})});
@@ -895,10 +928,9 @@ $('modal').addEventListener('keydown', event => {
   }
 });
 $('requirement').addEventListener('keydown', event => {
-  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-    event.preventDefault();
-    if (!$('generate').disabled) $('generate').click();
-  }
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!$('generate').disabled) $('generate').click();
 });
 $('search-query').addEventListener('keydown', event => {
   if (event.key === 'Enter') {

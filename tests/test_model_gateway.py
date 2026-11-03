@@ -31,6 +31,17 @@ class ModelGatewayTests(unittest.TestCase):
             gateway.complete([{'role': 'user', 'content': 'hi'}])
         self.assertNotIn('test-secret', str(caught.exception))
 
+    def test_method_not_allowed_explains_base_url_without_leaking_key(self):
+        gateway = ModelGateway(transport=httpx.MockTransport(lambda request:
+            httpx.Response(405, text='Method Not Allowed')))
+        gateway.configure('http://fixture.local/v1', 'fixture', 'test-secret')
+        with self.assertRaises(ModelUnavailable) as caught:
+            gateway.complete([{'role': 'user', 'content': 'hi'}])
+        message = str(caught.exception)
+        self.assertIn('405', message)
+        self.assertIn('Base URL', message)
+        self.assertNotIn('test-secret', message)
+
     def test_endpoint_credentials_and_non_http_are_rejected(self):
         for url in ('file:///secret', 'https://user:password@host/v1', 'https://host/v1?key=secret'):
             with self.subTest(url=url), self.assertRaises(ValueError):

@@ -54,6 +54,11 @@ textarea {
   color: inherit;
 }
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
   cursor: pointer;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -61,6 +66,9 @@ button {
   padding: 7px 12px;
   color: var(--body);
   transition: background-color 140ms, border-color 140ms, color 140ms, box-shadow 140ms;
+}
+button > svg {
+  flex-shrink: 0;
 }
 button:hover {
   background: #f4f7f5;
@@ -532,6 +540,34 @@ pre {
 .composer-note {
   font-size: 10.5px;
   color: var(--muted);
+}
+.composer-mode {
+  flex-shrink: 0;
+  max-width: 190px;
+  padding: 2px 7px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 10.5px;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.composer-mode:hover {
+  border-color: #d5e2dc;
+  background: #f3f8f5;
+  color: #46534e;
+}
+.composer-mode.warn {
+  border-color: #efd9ad;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.composer-mode.warn:hover {
+  border-color: #e4c98e;
+  background: #fcedd2;
+  color: #8d5d13;
 }
 .composer #active-model {
   flex: 1;
@@ -1841,7 +1877,7 @@ dialog::backdrop {
 .document-modal .dialog-body { padding: 0; flex: 1; overflow: hidden; }
 .document-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); height: 100%; min-height: 0; }
 #deliverable-list { display: flex; flex-direction: column; gap: 6px; overflow: auto; padding: 14px; background: #f4f7f8; border-right: 1px solid var(--line); }
-#deliverable-list button { flex-shrink: 0; width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 10px; }
+#deliverable-list button { display: block; flex-shrink: 0; width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; padding: 10px; }
 #deliverable-list button[aria-current=true] { background: #e3edf9; color: #013f97; border-color: #8ba9d0; }
 #deliverable-list strong, #deliverable-list small { display: block; }
 #deliverable-list small { margin-top: 4px; font-size: 11px; color: #5a6a7b; }

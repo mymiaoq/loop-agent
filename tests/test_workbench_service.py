@@ -78,6 +78,28 @@ class WorkbenchServiceTests(unittest.TestCase):
             self.service.generate_spec(self.pid, '真实', '真实需求', 'real')
         self.assertEqual(self.store.specs(self.pid), [])
 
+    def test_real_generation_rejects_provider_error_text_without_creating_spec(self):
+        class ErrorGateway:
+            def complete(self, messages):
+                return {'content': 'Method Not Allowed', 'model': 'fixture', 'usage': {}}
+            def public_config(self):
+                return {'configured': True}
+        service = WorkbenchService(ROOT, self.store, gateway=ErrorGateway())
+        with self.assertRaisesRegex(ModelUnavailable, '接口错误文本'):
+            service.generate_spec(self.pid, '错误响应', '真实需求', 'real')
+        self.assertEqual(self.store.specs(self.pid), [])
+
+    def test_real_generation_rejects_content_without_acceptance_ids(self):
+        class NoAcceptanceGateway:
+            def complete(self, messages):
+                return {'content': '# 草稿\n没有验收编号。', 'model': 'fixture', 'usage': {}}
+            def public_config(self):
+                return {'configured': True}
+        service = WorkbenchService(ROOT, self.store, gateway=NoAcceptanceGateway())
+        with self.assertRaisesRegex(ModelUnavailable, 'AC验收编号'):
+            service.generate_spec(self.pid, '无验收', '真实需求', 'real')
+        self.assertEqual(self.store.specs(self.pid), [])
+
     def test_snapshot_hash_covers_final_model_input(self):
         import json
         from docloop.governance import sha256

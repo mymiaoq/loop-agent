@@ -1,12 +1,13 @@
 """工作台业务：引用资料、本地 Skills、需求草稿、不可变审批与受控运行。"""
 import json
+import re
 import yaml
 from pathlib import Path
 from uuid import uuid4
 from threading import RLock
 from .contracts import TaskContext
 from .governance import write_json, sha256
-from .model_gateway import ModelGateway
+from .model_gateway import ModelGateway, ModelUnavailable
 from .project import select_context
 from .skill_runtime import SkillRegistry
 from .workflow import Workflow
@@ -211,6 +212,10 @@ class WorkbenchService:
         if mode == 'real':
             response = self.gateway.complete(packet['messages'])
             content = response['content']
+            if re.search(r'\b(Method Not Allowed|Not Found|Unauthorized|Forbidden)\b', content, re.I):
+                raise ModelUnavailable('模型返回的是接口错误文本，不是需求规格；未创建任务。请检查模型连接，或启用演示规格后重试。')
+            if not re.search(r'\bAC-\d+\b', content):
+                raise ModelUnavailable('模型返回的内容缺少AC验收编号，不能作为可审批的规格；未创建任务。请检查模型连接，或启用演示规格后重试。')
             write_json(self.store.root / 'inputs' / f'{invocation_id}-result.json', {
                 'model_invoked': True, 'model': response['model'], 'usage': response['usage']}, exclusive=True)
         else:
