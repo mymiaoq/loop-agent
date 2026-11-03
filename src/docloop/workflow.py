@@ -42,11 +42,15 @@ class Workflow:
     def __init__(self, root: Path, limits=None, *, instruction_root=None,
                  require_final_acceptance=False):
         self.root = Path(root).resolve()
-        self.require_final_acceptance = bool(require_final_acceptance)
         self.instruction_root = Path(instruction_root).resolve() if instruction_root else self.root
         self.gov = Governance(self.root)
         config_path = self.instruction_root / '.docloop/project.yaml'
         self.project_config = read_yaml(config_path) if config_path.exists() else {}
+        if require_final_acceptance is None:
+            governance = self.project_config.get('governance', {})
+            require_final_acceptance = bool(governance.get('require_final_acceptance', False)) \
+                if isinstance(governance, dict) else False
+        self.require_final_acceptance = bool(require_final_acceptance)
         self.limits = limits or Limits(**self.project_config.get('limits', {}))
         self.reliability = Reliability(self.limits, clock=time.time)
         checkpoints = self.root / '.docloop/checkpoints'

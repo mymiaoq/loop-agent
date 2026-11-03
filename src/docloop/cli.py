@@ -40,6 +40,10 @@ def main(argv=None):
     approve.add_argument('change_id')
     approve.add_argument('--hash', required=True)
     approve.add_argument('--by', required=True)
+    accept = commands.add_parser('accept', help='Record explicit user final acceptance')
+    accept.add_argument('change_id')
+    accept.add_argument('--by', required=True)
+    accept.add_argument('--note', default='')
     for command in ('status', 'resume', 'recover'):
         item = commands.add_parser(command)
         item.add_argument('change_id')
@@ -76,6 +80,8 @@ def main(argv=None):
                                     mode=args.mode, source=str(args.spec.resolve()))
             elif args.command == 'approve':
                 result = flow.approve(args.change_id, args.hash, args.by)
+            elif args.command == 'accept':
+                result = flow.accept(args.change_id, args.by, args.note)
             elif args.command == 'resume':
                 result = flow.resume(args.change_id)
             elif args.command == 'recover':
@@ -86,7 +92,8 @@ def main(argv=None):
             value.pop('__interrupt__', None)
             value['spec_sha256'] = flow.gov.digest(args.change_id)
             if result.get('__interrupt__'):
-                value['waiting_for'] = 'explicit Spec SHA256 approval'
+                value['waiting_for'] = ('final user acceptance' if value.get('status') == 'awaiting_acceptance'
+                                        else 'explicit Spec SHA256 approval')
             output(value)
             return 2 if value.get('status') in {'blocked', 'failed'} else 0
     except (GateError, OSError, ValueError, KeyError) as error:
