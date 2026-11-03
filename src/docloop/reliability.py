@@ -56,6 +56,24 @@ def fingerprint(error: Exception) -> str:
     return hashlib.sha256(f'{type(error).__name__}:{error}'.encode()).hexdigest()
 
 
+class RepairLoop:
+    """把失败分类、修复轮次和无进展检测组合成可测试的修复循环。"""
+    def __init__(self, reliability):
+        self.reliability = reliability
+
+    def run(self, operation, progress, repair_action=None):
+        while True:
+            try:
+                return operation()
+            except Exception as error:
+                error_class = classify_error(error)
+                if error_class in NON_REPAIRABLE:
+                    raise
+                self.reliability.repair(fingerprint(error), progress, error_class)
+                if repair_action is not None:
+                    repair_action(error)
+
+
 class Reliability:
     def __init__(self, limits=None, *, clock=time.monotonic, sleep=time.sleep):
         self.limits = limits or Limits()

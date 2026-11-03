@@ -69,6 +69,26 @@ def select_context(root: Path, domains=None):
     return config, profile, active
 
 
+def check_protected_paths(root: Path, changed_files):
+    """检查 Profile 的 protected_paths；返回被拒绝的路径，不修改文件。"""
+    root = Path(root).resolve()
+    config, profile, _ = select_context(root)
+    patterns = profile.get('protected_paths', [])
+    if not isinstance(patterns, list) or any(not isinstance(item, str) for item in patterns):
+        raise GateError('Invalid protected_paths')
+    rejected = []
+    for name in changed_files:
+        normalize = str(name).replace('\\', '/')
+        if normalize.startswith('./'):
+            normalize = normalize[2:]
+        if any(Path(normalize).match(pattern.rstrip('/') + '/*') if pattern.endswith('/')
+               else Path(normalize).match(pattern) for pattern in patterns):
+            rejected.append(normalize)
+    if rejected:
+        raise GateError('Protected paths changed: ' + ', '.join(sorted(rejected)))
+    return []
+
+
 def inspect_project(root: Path):
     root = Path(root).resolve()
     config, profile, active = select_context(root)

@@ -66,3 +66,11 @@ class ProjectTests(unittest.TestCase):
             (target / '.docloop/skills/test-runner/SKILL.md').unlink()
             with self.assertRaises(GateError):
                 inspect_project(target)
+
+
+class ProtectedPathTests(unittest.TestCase):
+    def test_baseline_and_enterprise_patterns_are_checked(self):
+        from docloop.project import check_protected_paths
+        with self.assertRaises(GateError):
+            check_protected_paths(ROOT, ['.docloop/changes/x/baseline/spec.md'])
+        self.assertEqual(check_protected_paths(ROOT, ['src/app.py']), [])

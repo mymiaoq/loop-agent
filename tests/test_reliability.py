@@ -70,3 +70,22 @@ class ReliabilityTests(unittest.TestCase):
         now[0] = 2
         with self.assertRaises(Blocked):
             r.charge('tools', 1)
+
+
+class RepairLoopTests(unittest.TestCase):
+    def test_repair_loop_retries_until_success_and_rejects_permission(self):
+        from docloop.reliability import RepairLoop
+        attempts = []
+        repairs = []
+        def operation():
+            attempts.append(1)
+            if len(attempts) < 3:
+                raise AssertionError('still failing')
+            return 'ok'
+        loop = RepairLoop(Reliability())
+        self.assertEqual(loop.run(operation, 'diff-1', repairs.append), 'ok')
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(len(repairs), 2)
+        denied = RepairLoop(Reliability())
+        with self.assertRaises(PermissionError):
+            denied.run(lambda: (_ for _ in ()).throw(PermissionError('no')), 'diff-1')
