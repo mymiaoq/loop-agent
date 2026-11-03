@@ -6,6 +6,7 @@ import subprocess
 from uuid import uuid4
 from .execution_lock import run_lock
 from .governance import sha256, write_json
+from .operations import OperationLedger
 from .worktree_runtime import WorktreeRuntime, WorktreeError, safe_path, git
 
 
@@ -69,9 +70,20 @@ class ExecutionPreparation:
         arguments = dict(repository_path=binding['path'], baseline_commit=binding['baseline_commit'],
             run_id=run_id, worktree_root=self.store.root / 'worktrees' / project_id,
             approved_spec_hash=spec_hash)
-        with run_lock(self.store.root, run_id):
-            worktree = runtime.prepare(**arguments)
-            snapshot = runtime.snapshot(**arguments)
+        ledger = OperationLedger(self.store.root, run_id)
+        operation = ledger.begin('worktree:prepare', 'worktree', {
+            'repository': binding['path'], 'baseline_commit': binding['baseline_commit'],
+            'spec_hash': spec_hash})
+        try:
+            with run_lock(self.store.root, run_id):
+                worktree = runtime.prepare(**arguments)
+                snapshot = runtime.snapshot(**arguments)
+        except Exception as error:
+            if operation['status'] != 'completed':
+                ledger.fail('worktree:prepare', type(error).__name__)
+            raise
+        if operation['status'] != 'completed':
+            ledger.complete('worktree:prepare', {'path': worktree['path'], 'branch': worktree['branch']})
         docker = docker_ready()
         return {'status': 'prepared', 'worktree': worktree, 'snapshot': snapshot,
                 'docker_ready': docker, 'business_code_execution': False, 'execution_gate': 'blocked',

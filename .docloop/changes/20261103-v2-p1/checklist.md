@@ -1,9 +1,10 @@
 # Phase 1 验收清单
 
 - [~] AC-220 baseline.json + 旧 approval 兼容（CLI 已加 + Phase 1 baseline；DB 投影待做）
+- [~] AC-217/AC-224 状态分层/映射已加；workflow/DB 接线待做
 - [~] AC-221 evidence 统一/历史兼容（可选字段已加；完整迁移待做）
 - [x] AC-222 checklist.md canonical + checkList 兼容 + 大小写测试
-- [ ] AC-218 operation_id 台账 + 恢复核验
+- [~] AC-218 operation_id 台账（ledger + Worktree prepare；其他副作用待做）
 - [ ] AC-217 错误分类/重试/无进展/修复/权限
 - [ ] AC-219 预算
 - [ ] AC-224 用户最终验收
