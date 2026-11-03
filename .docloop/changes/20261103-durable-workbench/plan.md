@@ -28,6 +28,6 @@ Spec：spec.md；详细决策见 ../../docs/workbench-durable-task-proposal.md�
 
 ## TASK-005 验证及交付（AC-006）
 - [x] 全套 unittest、docloop doctor、独立审查、记录 evidence.yaml 与版本索引。
-- [ ] 白名单提交；配置远端可用时推送独立功能分支并核对远端，不强推。
+- [x] 白名单提交；配置远端可用时推送独立功能分支并核对远端，不强推。
 
 进度与决策记录在 execution-log.md。用户已明确授权执行，不重复需求审批。

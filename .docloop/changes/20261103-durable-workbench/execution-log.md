@@ -12,4 +12,5 @@ Plan: plan.md
 - TASK-004 complete：四类弹层、中文能力展示、主区控制栏及实际记录布局回归；浏览器3项通过。
 - TASK-005 verification complete：129项后端测试通过（1项Windows权限跳过），doctor和编译/JS语法检查通过。
 - Ruling：开发沿用原分支，交付时建立codex/durable-workbench-20261103独立分支与docloop-workbench-20261103标签，不合并或强推原分支。
-- Git提交与远端核对：待交付步骤记录。
+- TASK-005 complete：交付Commit a1ead0a6147d68e1ec32bc17782dd3da55290039；分支 codex/durable-workbench-20261103 与标签 docloop-workbench-20261103 已原子推送并用ls-remote核对。39项产物按标签内Git Blob逐项核验SHA-256，全部匹配。
+- 发布回执见delivery-receipt.json；回执文档提交不改变交付标签。

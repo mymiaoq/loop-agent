@@ -1,0 +1,14 @@
+{
+  "version": "docloop-workbench-20261103",
+  "release_commit": "a1ead0a6147d68e1ec32bc17782dd3da55290039",
+  "remote_tag_object": "924984ec199cad59cca7d5da79bf1c39e60065d4",
+  "remote_verified_at": "2026-11-03T06:47:17.928394+00:00",
+  "status": "remote_confirmed",
+  "repository": "https://github.com/mymiaoq/loop-agent",
+  "delivery_branch": "codex/durable-workbench-20261103",
+  "release_url": "https://github.com/mymiaoq/loop-agent/tree/docloop-workbench-20261103",
+  "artifact_manifest": ".docloop/changes/20261103-durable-workbench/delivery-manifest.json",
+  "artifact_manifest_sha256": "50d5c5b71b3a295a6d96751a46800776e5daabb28f799eccfe9753802fe85ea4",
+  "artifact_count": 39,
+  "note": "Release tag is immutable. Later documentation receipts may advance delivery branch without modifying tagged artifacts."
+}
