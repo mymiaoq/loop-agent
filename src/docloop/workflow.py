@@ -33,13 +33,16 @@ class RunState(TypedDict, total=False):
     error: str
     evidence: dict
     review: dict
+    acceptance: dict
     archive: str
     task_context: dict
 
 
 class Workflow:
-    def __init__(self, root: Path, limits=None, *, instruction_root=None):
+    def __init__(self, root: Path, limits=None, *, instruction_root=None,
+                 require_final_acceptance=False):
         self.root = Path(root).resolve()
+        self.require_final_acceptance = bool(require_final_acceptance)
         self.instruction_root = Path(instruction_root).resolve() if instruction_root else self.root
         self.gov = Governance(self.root)
         config_path = self.instruction_root / '.docloop/project.yaml'
@@ -50,13 +53,21 @@ class Workflow:
         checkpoints.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(str(checkpoints / 'workflow.sqlite'), check_same_thread=False)
         graph = StateGraph(RunState)
-        for name, node in [('approval', self._approval), ('plan', self._plan),
-                           ('implement', self._implement), ('verify', self._verify),
-                           ('review', self._review), ('archive', self._archive)]:
+        nodes = [('approval', self._approval), ('plan', self._plan),
+                 ('implement', self._implement), ('verify', self._verify),
+                 ('review', self._review)]
+        if self.require_final_acceptance:
+            nodes.append(('acceptance', self._acceptance))
+        nodes.append(('archive', self._archive))
+        for name, node in nodes:
             graph.add_node(name, self._guard(node))
         graph.add_edge(START, 'approval')
-        for current, following in [('approval', 'plan'), ('plan', 'implement'),
-                                   ('implement', 'verify'), ('verify', 'review'), ('review', 'archive')]:
+        chain = [('approval', 'plan'), ('plan', 'implement'), ('implement', 'verify'),
+                 ('verify', 'review')]
+        chain.append(('review', 'acceptance' if self.require_final_acceptance else 'archive'))
+        if self.require_final_acceptance:
+            chain.append(('acceptance', 'archive'))
+        for current, following in chain:
             graph.add_conditional_edges(current, lambda state, nxt=following:
                                         END if state['status'] in {'blocked', 'failed', 'cancelled'} else nxt,
                                         {following: following, END: END})
@@ -99,6 +110,19 @@ class Workflow:
         if not values:
             raise GateError('Run not found')
         return values
+
+    def accept(self, change_id, approver, note=''):
+        """真实 Run 的显式用户最终验收；demo/旧流程默认不进入此节点。"""
+        snapshot = self.graph.get_state(self.config(change_id))
+        if snapshot.values.get('status') != 'awaiting_acceptance' or snapshot.next != ('acceptance',):
+            raise GateError('Run is not waiting for final user acceptance')
+        if not approver.strip() or len(approver) > 120:
+            raise GateError('Explicit final approver required')
+        review = snapshot.values.get('review') or {}
+        if review.get('status') != 'passed':
+            raise GateError('Review must pass before final acceptance')
+        return self._invoke(Command(resume={'decision': 'accepted', 'approver': approver.strip(),
+                                            'note': note[:1000]}), change_id)
 
     def approve(self, change_id, expected_hash, approver):
         snapshot = self.graph.get_state(self.config(change_id))
@@ -156,7 +180,8 @@ class Workflow:
                     self._load_budget(state['change_id'])
                     self.reliability.charge('graph_steps')
                     self.gov.assert_baseline(state['change_id'])
-                self._prepare_agent_input(state, 'spec' if node.__name__ == '_approval' else node.__name__[1:])
+                if node.__name__ != '_acceptance':
+                    self._prepare_agent_input(state, 'spec' if node.__name__ == '_approval' else node.__name__[1:])
                 result = node(state)
                 if node.__name__ != '_approval':
                     self._save_budget(state['change_id'])
@@ -273,7 +298,23 @@ class Workflow:
                   'commit': state['commit'], 'missing_evidence': [],
                   'remaining_risks': ['Deterministic demo review; no semantic business-code review.']}
         (path / 'review.yaml').write_text(yaml.safe_dump(review, allow_unicode=True), encoding='utf-8')
+        if self.require_final_acceptance:
+            return {**self._move(state, 'awaiting_acceptance', 'review-agent'), 'review': review}
         return {'review': review}
+
+    def _acceptance(self, state):
+        answer = interrupt({'message': 'Explicit user final acceptance required',
+                            'change_id': state['change_id'],
+                            'commit': state.get('commit'),
+                            'review': state.get('review', {})})
+        if (not isinstance(answer, dict) or answer.get('decision') != 'accepted'
+                or not str(answer.get('approver', '')).strip()):
+            raise GateError('Explicit user final acceptance required')
+        record = {'producer': 'user', 'status': 'accepted',
+                  'approver': str(answer['approver']).strip(),
+                  'note': str(answer.get('note', ''))[:1000],
+                  'commit': state.get('commit')}
+        return {**self._move(state, 'accepted', 'orchestrator-agent'), 'acceptance': record}
 
     def _archive(self, state):
         review = state.get('review', {})
@@ -282,4 +323,7 @@ class Workflow:
         validate_evidence(state['acceptance_ids'], state['evidence'])
         self._adapter(state).assert_commit(state['commit'])
         path = archive_change(self.root, state['change_id'], self.gov.path(state['change_id']))
-        return {**self._move(state, 'accepted', 'orchestrator-agent'), 'archive': str(path)}
+        result = {'archive': str(path)}
+        if state.get('status') != 'accepted':
+            result.update(self._move(state, 'accepted', 'orchestrator-agent'))
+        return result

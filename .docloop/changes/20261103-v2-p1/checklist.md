@@ -7,7 +7,7 @@
 - [~] AC-218 operation_id 台账（ledger + Worktree prepare；其他副作用待做）
 - [~] AC-217 错误分类/非重试权限/repair 拒绝（完整失败→修复→复验待做）
 - [ ] AC-219 预算
-- [ ] AC-224 用户最终验收
+- [~] AC-224 Workflow 显式最终验收节点/accept API（workbench/CLI/UI 接线待做）
 - [~] AC-228 15 唯一/全部路由/enterprise gate（元数据/执行器待做）
 - [~] AC-229 企业 Profile 代码门禁（Rules 内容检查/审批待做）
 - [x] AC-223 gitignore/agent-inputs/indexes

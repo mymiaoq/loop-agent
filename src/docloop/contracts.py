@@ -8,6 +8,8 @@ TRANSITIONS = {
     ('in_progress', 'implemented'): 'implement-agent',
     ('implemented', 'verified'): 'verify-agent',
     ('verified', 'accepted'): 'orchestrator-agent',
+    ('verified', 'awaiting_acceptance'): 'review-agent',
+    ('awaiting_acceptance', 'accepted'): 'orchestrator-agent',
 }
 ROLES = {'orchestrator-agent', 'spec-agent', 'implement-agent', 'verify-agent', 'review-agent'}
 

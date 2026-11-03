@@ -30,6 +30,23 @@ class WorkflowTests(unittest.TestCase):
         report = yaml.safe_load((archive / 'evidence.yaml').read_text(encoding='utf-8'))
         self.assertEqual(report['verification']['mode'], 'demo')
 
+    def test_optional_final_acceptance_requires_user_and_archives_after_decision(self):
+        with Workflow(self.root, require_final_acceptance=True) as flow:
+            self.assertIn('__interrupt__', flow.start('demo-accept', '# Demo\nAC-001: verify\n',
+                                                      'success', 'demo'))
+        with Workflow(self.root, require_final_acceptance=True) as flow:
+            waiting = flow.approve('demo-accept', flow.gov.digest('demo-accept'), 'test-user')
+            self.assertEqual(waiting['status'], 'awaiting_acceptance')
+            self.assertEqual(waiting['review']['status'], 'passed')
+            self.assertFalse((self.root / '文档/变更记录/demo-accept').exists())
+            with self.assertRaises(GateError):
+                flow.accept('demo-accept', '')
+        with Workflow(self.root, require_final_acceptance=True) as flow:
+            accepted = flow.accept('demo-accept', '最终验收人', '实际核对通过')
+        self.assertEqual(accepted['status'], 'accepted')
+        self.assertEqual(accepted['acceptance']['approver'], '最终验收人')
+        self.assertTrue((self.root / '文档/变更记录/demo-accept/manifest.yaml').is_file())
+
     def test_failed_verification_never_reviews_or_archives(self):
         self.start('verification-failure')
         with Workflow(self.root) as flow:
