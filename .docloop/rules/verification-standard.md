@@ -37,7 +37,7 @@
 #### 证据格式
 
 验证结果写入 `.docloop/changes/<change-id>/evidence.yaml`，并关联
-`checkList.md` 中的 Test Case ID：
+`checklist.md` 中的 Test Case ID：
 
 ``` yaml
 verification:

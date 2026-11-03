@@ -193,7 +193,7 @@ class ManagedRuns:
                 f'## {t["id"]}\n{t["description"]}\n预期：{t["expected"]}\nTASK: {", ".join(t["task_ids"])}\nAC: {", ".join(t["acceptance_ids"])}'
                 for t in value['test_cases'])
             (changes / 'tasks.md').write_text(task_text, encoding='utf-8')
-            (changes / 'checkList.md').write_text(test_text, encoding='utf-8')
+            (changes / 'checklist.md').write_text(test_text, encoding='utf-8')
             record('plan', 'planned')
             return {'plan': value}
 

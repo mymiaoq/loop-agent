@@ -173,7 +173,7 @@ class WorkbenchService:
                         'title': f'验证检查 {check["id"]}', 'summary': check['observed'],
                         'detail': encoded_detail(check), 'result': check['result'], 'created_at': None})
             if run['id'] == task_runs[0]['id'] and run['status'] != 'in_progress':
-                for name in ('tasks.md', 'checkList.md', 'evidence.yaml', 'review.yaml'):
+                for name in ('tasks.md', 'checklist.md', 'checkList.md', 'evidence.yaml', 'review.yaml'):
                     file = changes / name
                     if file.is_file() and file.resolve().is_relative_to(self.store.root):
                         raw = file.read_bytes()

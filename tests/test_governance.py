@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +22,19 @@ class GovernanceTests(unittest.TestCase):
             self.gov.approve('change-1', 'wrong', 'user')
         digest = self.gov.digest('change-1')
         self.gov.approve('change-1', digest, 'user')
+        self.assertEqual(self.gov.assert_baseline('change-1'), digest)
+
+    def test_baseline_json_is_additive_and_legacy_record_remains_readable(self):
+        digest = self.gov.digest('change-1')
+        self.gov.approve('change-1', digest, 'user', base_commit_sha='a' * 40)
+        record = json.loads((self.gov.path('change-1') / 'baseline/baseline.json').read_text(encoding='utf-8'))
+        self.assertEqual(record['change_id'], 'change-1')
+        self.assertEqual(record['spec_sha256'], digest)
+        self.assertEqual(record['base_commit_sha'], 'a' * 40)
+        self.assertEqual(record['version'], 2)
+        self.assertTrue(record['rules_version'])
+        self.assertTrue(record['skills_version'])
+        (self.gov.path('change-1') / 'baseline/baseline.json').unlink()
         self.assertEqual(self.gov.assert_baseline('change-1'), digest)
 
     def test_baseline_cannot_be_overwritten_or_silently_updated(self):

@@ -237,7 +237,7 @@ class Workflow:
         (path / 'tasks.md').write_text('# Controlled demo plan\n\n'
             'Mode: demo. No upstream Skill invocation claimed.\n\n'
             'TASK-001: write sandbox result.json, commit, independently parse value=42.\n', encoding='utf-8')
-        (path / 'checkList.md').write_text('# Controlled demo checks\n\n'
+        (path / 'checklist.md').write_text('# Controlled demo checks\n\n'
             '| AC | Task | Test Case | Evidence |\n| --- | --- | --- | --- |\n' + rows, encoding='utf-8')
         return self._move(state, 'ready', 'orchestrator-agent')
 
@@ -252,6 +252,8 @@ class Workflow:
     def _verify(self, state):
         path = self.gov.path(state['change_id'])
         report = self._adapter(state).verify(state['acceptance_ids'], state['commit'], path / 'logs')
+        report.setdefault('change_id', state['change_id'])
+        report.setdefault('status', 'passed')
         (path / 'evidence.yaml').write_text(yaml.safe_dump({'verification': report},
                                                          allow_unicode=True), encoding='utf-8')
         validate_evidence(state['acceptance_ids'], report)

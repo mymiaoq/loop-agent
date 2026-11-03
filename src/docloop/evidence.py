@@ -16,6 +16,13 @@ def validate_evidence(acceptance_ids: list[str], report: dict):
         required = ('id', 'test_case_id', 'command_or_method', 'observed', 'evidence')
         if any(not check.get(key) for key in required) or check.get('result') != 'passed':
             raise GateError('Mandatory evidence missing, failed, blocked or not_run')
+        if 'test_layer' in check and (not isinstance(check['test_layer'], str) or not check['test_layer'].strip()):
+            raise GateError('Invalid evidence test layer')
+        if 'exit_code' in check and not isinstance(check['exit_code'], int):
+            raise GateError('Invalid evidence exit code')
+        for key in ('log_path', 'screenshot_path', 'executed_at'):
+            if key in check and not isinstance(check[key], str):
+                raise GateError('Invalid evidence path or timestamp')
         if check['id'] in seen:
             raise GateError('Duplicate verification ID')
         seen.add(check['id'])
@@ -28,8 +35,10 @@ def validate_evidence(acceptance_ids: list[str], report: dict):
 
 def archive_change(root: Path, change_id: str, source: Path):
     target = root / '文档' / '变更记录' / change_id
-    required = ('spec.md', 'decisions.md', 'tasks.md', 'checkList.md', 'evidence.yaml', 'review.yaml')
-    if any(not (source / item).is_file() for item in required):
+    checklist = next((name for name in ('checklist.md', 'checkList.md')
+                      if (source / name).is_file()), None)
+    required = ('spec.md', 'decisions.md', 'tasks.md', 'evidence.yaml', 'review.yaml')
+    if checklist is None or any(not (source / item).is_file() for item in required):
         raise GateError('Archive inputs incomplete')
     if target.exists():
         manifest = yaml.safe_load((target / 'manifest.yaml').read_text(encoding='utf-8'))

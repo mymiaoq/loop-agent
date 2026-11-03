@@ -2,7 +2,7 @@
 
 **输入：** `task_context`、已锁定的 Spec Baseline，以及
 `.docloop/changes/<change-id>/` 下的 `spec.md` / `decisions.md` /
-`tasks.md` / `checkList.md`。必须使用 Superpowers
+`tasks.md` / `checklist.md`。必须使用 Superpowers
 `test-driven-development`；适合拆分的任务使用
 `subagent-driven-development`。
 

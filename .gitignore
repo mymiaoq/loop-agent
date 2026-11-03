@@ -7,6 +7,8 @@ dist/
 .docloop/sessions/*
 .docloop/traces/*
 .docloop/recovery/*
+.docloop/indexes/*
+.docloop/changes/*/agent-inputs/*
 !.gitkeep
 .env
 .env.*

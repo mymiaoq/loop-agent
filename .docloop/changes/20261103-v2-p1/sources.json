@@ -1,0 +1,154 @@
+{
+  "source": "user-confirmation: 2026-11-03 Phase 1 + defaults",
+  "sha256": "ef5c5731850159c2da6efbe58327f9fccdcdc9379371accfecb9ee40a2a43f70",
+  "lines": [
+    {
+      "line": 1,
+      "text": "# DocLoop Agent V2.0 Phase 1：契约与可靠性"
+    },
+    {
+      "line": 2,
+      "text": ""
+    },
+    {
+      "line": 3,
+      "text": "状态：approved（用户于 2026-11-03 确认 Phase 1 与推荐默认）；这是 Phase 1 的 Change 基线，不是 V2 全量基线。"
+    },
+    {
+      "line": 4,
+      "text": "上级规格：`../20261103-v2-upgrade/spec.md`；决策：`../20261103-v2-upgrade/decisions.md`。"
+    },
+    {
+      "line": 5,
+      "text": ""
+    },
+    {
+      "line": 6,
+      "text": "## 范围"
+    },
+    {
+      "line": 7,
+      "text": ""
+    },
+    {
+      "line": 8,
+      "text": "Phase 1 只收敛现有契约与可靠性，不实现 Worker/DAG/Codebase Context/Graph/VS Code/真实编码。"
+    },
+    {
+      "line": 9,
+      "text": ""
+    },
+    {
+      "line": 10,
+      "text": "包含：T-101 状态映射、T-102 baseline.json、T-103 evidence schema、T-104 checklist.md、T-105 operation_id、T-106 reliability、T-107 gitignore、T-108 测试发现、T-109 最终验收契约、T-110 Skill 路由、T-111 Rules 门禁。"
+    },
+    {
+      "line": 11,
+      "text": ""
+    },
+    {
+      "line": 12,
+      "text": "## 验收标准（Phase 1 子集）"
+    },
+    {
+      "line": 13,
+      "text": ""
+    },
+    {
+      "line": 14,
+      "text": "- AC-217 错误分类、有限重试、2 轮无进展、3 轮修复、预算生效；权限错误不可重试。"
+    },
+    {
+      "line": 15,
+      "text": "- AC-218 外部副作用 operation_id 台账；恢复核验，避免重复副作用。"
+    },
+    {
+      "line": 16,
+      "text": "- AC-219 Task/Run/Token/工具/模型/并发预算；超限 blocked。"
+    },
+    {
+      "line": 17,
+      "text": "- AC-220 baseline.json 字段/权威/版本；兼容旧 approval.json；原字节不变。"
+    },
+    {
+      "line": 18,
+      "text": "- AC-221 evidence schema 统一，兼容历史，not_run 可表达且不计通过。"
+    },
+    {
+      "line": 19,
+      "text": "- AC-222 checklist.md canonical，兼容 checkList.md；大小写不敏感 FS 有测试。"
+    },
+    {
+      "line": 20,
+      "text": "- AC-223 .docloop Git 策略：配置跟踪，agent-inputs/indexes 忽略；eol/基线字节不变。"
+    },
+    {
+      "line": 21,
+      "text": "- AC-224 review 后 awaiting_acceptance；用户显式验收才 accepted；演示/真实区分。"
+    },
+    {
+      "line": 22,
+      "text": "- AC-228 15 个唯一 Skill 可注册/路由；document-parser 单份；7 个未路由 Skill 接入。"
+    },
+    {
+      "line": 23,
+      "text": "- AC-229 Rules 编码前/修改后/Review 检查；企业 Profile 代码门禁；Rules 修改审批。"
+    },
+    {
+      "line": 24,
+      "text": "- AC-213 三层测试脚手架可独立执行（Phase 1 只建立骨架和现有测试分层）。"
+    },
+    {
+      "line": 25,
+      "text": "- AC-233 测试/覆盖率按 Profile 配置，不固定 47/82；未运行标 not_run。"
+    },
+    {
+      "line": 26,
+      "text": ""
+    },
+    {
+      "line": 27,
+      "text": "## 非范围"
+    },
+    {
+      "line": 28,
+      "text": ""
+    },
+    {
+      "line": 29,
+      "text": "Worker Runtime、Task DAG、Codebase Context/Graph、真实编码 Runtime、VS Code、并发 2–3、Oracle/Docker 现场验收。Phase 2 前暂停确认真实编码 Runtime。"
+    },
+    {
+      "line": 30,
+      "text": ""
+    },
+    {
+      "line": 31,
+      "text": "## 变更模块"
+    },
+    {
+      "line": 32,
+      "text": ""
+    },
+    {
+      "line": 33,
+      "text": "`governance.py`、`workbench_store.py`、`evidence.py`、`workflow.py`、`reliability.py`、`project.py`、`skill_runtime.py`、templates/rules/agents、tests、`.gitignore`。"
+    },
+    {
+      "line": 34,
+      "text": ""
+    },
+    {
+      "line": 35,
+      "text": "## 批准"
+    },
+    {
+      "line": 36,
+      "text": ""
+    },
+    {
+      "line": 37,
+      "text": "用户于 2026-11-03 选择“先 Phase 1，Phase 2 前再定 Runtime”，并接受推荐默认。批准仅覆盖 Phase 1 子集；Phase 2+ 不在本 Change。"
+    }
+  ]
+}

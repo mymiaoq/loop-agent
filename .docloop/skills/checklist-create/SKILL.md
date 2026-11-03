@@ -21,7 +21,7 @@ read_file, write_change；实际权限取 task_context 与适配器权限的交�
 逐一覆盖所有 AC；区分强制与可选检查；缺映射返回 blocked。
 
 ## 输出 Schema
-checkList.md，REQ/AC/TASK/TC/V 映射。所有结果标明 mode 与 status。
+checklist.md，REQ/AC/TASK/TC/V 映射。所有结果标明 mode 与 status。
 
 ## 失败处理
 环境、权限或必要业务信息缺失时返回 blocked；保存证据，不自动扩大范围。

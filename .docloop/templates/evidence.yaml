@@ -1,9 +1,12 @@
 verification:
   change_id: ''
-  checks: []
-  commit: ''
-  failures: []
+  status: blocked
   producer: verify-agent
+  commit: ''
+  checks:
+  # 每条检查可按需补充 task_id/test_layer/exit_code/executed_at/log_path/screenshot_path
+  # test_layer: static | unit | integration | api | e2e | security | manual
+  failures: []
+  blocked_by: []
   remaining_risks:
   - Template only; no verification executed.
-  status: blocked

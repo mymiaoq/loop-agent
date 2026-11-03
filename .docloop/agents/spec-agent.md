@@ -31,7 +31,7 @@
 -   `decisions.md`：已确认决策、待确认问题、阻塞项和风险
 -   `tasks.md`：Spec 审批后由 orchestrator-agent 调用 Superpowers
     `writing-plans` 生成正式任务计划。
--   `checkList.md`：由 DocLoop `checklist-create` 在 tasks.md
+-   `checklist.md`：由 DocLoop `checklist-create` 在 tasks.md
     生成后创建。
 -   `evidence.yaml`：由 verify-agent 在独立验证时生成。
 
