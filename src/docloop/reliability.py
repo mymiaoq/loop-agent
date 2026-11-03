@@ -24,6 +24,34 @@ class Limits:
     circuit_failures: int = 5
 
 
+RETRYABLE = frozenset({'timeout', 'network'})
+NON_REPAIRABLE = frozenset({'permission', 'budget', 'gate'})
+
+
+def classify_error(error: Exception) -> str:
+    """把异常归一到稳定类别；未知异常不自动重试。"""
+    if isinstance(error, Blocked):
+        return 'budget'
+    if isinstance(error, PermissionError):
+        return 'permission'
+    if isinstance(error, (TimeoutError, ConnectionError)):
+        return 'timeout' if isinstance(error, TimeoutError) else 'network'
+    if isinstance(error, FileNotFoundError):
+        return 'resource'
+    if isinstance(error, AssertionError):
+        return 'test'
+    name = type(error).__name__.lower()
+    if 'timeout' in name:
+        return 'timeout'
+    if 'connection' in name or 'transport' in name:
+        return 'network'
+    if 'calledprocess' in name or 'subprocess' in name:
+        return 'command'
+    if 'gate' in name:
+        return 'gate'
+    return 'unknown'
+
+
 def fingerprint(error: Exception) -> str:
     return hashlib.sha256(f'{type(error).__name__}:{error}'.encode()).hexdigest()
 
@@ -64,7 +92,10 @@ class Reliability:
                 self.check_time()
                 self.failures = 0
                 return result
-            except (TimeoutError, ConnectionError) as error:
+            except Exception as error:
+                error_class = classify_error(error)
+                if error_class not in RETRYABLE:
+                    raise
                 self.failures += 1
                 self.fingerprints.append(fingerprint(error))
                 if attempt == self.limits.retries:
@@ -72,8 +103,10 @@ class Reliability:
                 self.sleep(min(2 ** attempt, 4))
         raise AssertionError('unreachable')
 
-    def repair(self, error_fingerprint: str, progress: str):
+    def repair(self, error_fingerprint: str, progress: str, error_class: str | None = None):
         self.check_time()
+        if error_class in NON_REPAIRABLE:
+            raise Blocked('Non-repairable error class; explicit recovery required')
         if self.repairs >= self.limits.repairs:
             raise Blocked('Repair round budget exhausted')
         self.stalled = self.stalled + 1 if progress == self.last_progress else 0

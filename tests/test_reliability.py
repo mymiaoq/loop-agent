@@ -1,5 +1,5 @@
 import unittest
-from docloop.reliability import Reliability, Limits, Blocked
+from docloop.reliability import Reliability, Limits, Blocked, classify_error
 
 
 class ReliabilityTests(unittest.TestCase):
@@ -42,6 +42,20 @@ class ReliabilityTests(unittest.TestCase):
             r.repair('error', str(i))
         with self.assertRaises(Blocked):
             r.repair('error', 'new')
+
+    def test_error_taxonomy_and_non_repairable_permission(self):
+        self.assertEqual(classify_error(PermissionError('denied')), 'permission')
+        self.assertEqual(classify_error(TimeoutError('slow')), 'timeout')
+        self.assertEqual(classify_error(AssertionError('failed')), 'test')
+        calls = []
+        def denied():
+            calls.append(1)
+            raise PermissionError('denied')
+        with self.assertRaises(PermissionError):
+            Reliability(sleep=lambda _: None).call(denied)
+        self.assertEqual(len(calls), 1)
+        with self.assertRaises(Blocked):
+            Reliability().repair('fp', 'progress', error_class='permission')
 
     def test_circuit_blocks_next_operation(self):
         r = Reliability(Limits(circuit_failures=2), sleep=lambda _: None)

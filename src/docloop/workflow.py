@@ -16,7 +16,7 @@ from .adapters import DemoAdapter
 from .contracts import transition, TaskContext
 from .evidence import validate_evidence, archive_change
 from .governance import GateError, Governance, write_json
-from .reliability import Blocked, Limits, Reliability, fingerprint
+from .reliability import Blocked, Limits, Reliability, classify_error, fingerprint
 from .project import read_yaml, select_context
 from .execution_lock import run_lock
 from .skill_runtime import SkillRegistry
@@ -165,6 +165,8 @@ class Workflow:
             except (GateError, Blocked, OSError, ValueError, sqlite3.Error) as error:
                 record = {**state, 'status': 'blocked', 'error': str(error),
                           'retry_node': node.__name__, 'resume_status': state['status'],
+                          'error_class': classify_error(error),
+                          'retryable': classify_error(error) in {'timeout', 'network'},
                           'fingerprint': fingerprint(error), 'usage': self.reliability.usage,
                           'repair_history': self.reliability.fingerprints,
                           'next_step': 'Inspect evidence/environment; resolve blocker and create a reviewed change.'}
