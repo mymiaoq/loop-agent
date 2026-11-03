@@ -2,7 +2,7 @@
 
 - [~] AC-220 baseline.json + 旧 approval 兼容（CLI + Phase 1 + workbench 投影；原子性/统一读取待做）
 - [~] AC-217/AC-224 状态分层/映射已加；workflow/DB 接线待做
-- [~] AC-221 evidence 统一/历史兼容（可选字段已加；完整迁移待做）
+- [~] AC-221 evidence 统一/历史兼容（旧证据可读并补齐字段；完整迁移/producer 策略待做）
 - [x] AC-222 checklist.md canonical + checkList 兼容 + 大小写测试
 - [~] AC-218 operation_id 台账（ledger + Worktree prepare；其他副作用待做）
 - [~] AC-217 错误分类/非重试权限/repair 拒绝（完整失败→修复→复验待做）

@@ -14,7 +14,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import Command, interrupt
 from .adapters import DemoAdapter
 from .contracts import transition, TaskContext
-from .evidence import validate_evidence, archive_change
+from .evidence import archive_change, normalize_evidence, validate_evidence
 from .governance import GateError, Governance, write_json
 from .reliability import Blocked, Limits, Reliability, classify_error, fingerprint
 from .project import read_yaml, route_skills, select_context
@@ -278,9 +278,9 @@ class Workflow:
 
     def _verify(self, state):
         path = self.gov.path(state['change_id'])
-        report = self._adapter(state).verify(state['acceptance_ids'], state['commit'], path / 'logs')
-        report.setdefault('change_id', state['change_id'])
-        report.setdefault('status', 'passed')
+        report = normalize_evidence(self._adapter(state).verify(state['acceptance_ids'], state['commit'], path / 'logs'))
+        report['change_id'] = state['change_id']
+        report['status'] = 'passed'
         (path / 'evidence.yaml').write_text(yaml.safe_dump({'verification': report},
                                                          allow_unicode=True), encoding='utf-8')
         validate_evidence(state['acceptance_ids'], report)

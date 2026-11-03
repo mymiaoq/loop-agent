@@ -6,7 +6,33 @@ import yaml
 from .governance import GateError, sha256
 
 
+def normalize_evidence(report: dict):
+    """读取旧报告时补齐 V2 字段；不改变 producer/result，门禁仍按严格规则判断。"""
+    if not isinstance(report, dict):
+        raise GateError('Evidence report must be an object')
+    value = dict(report)
+    checks = []
+    for check in value.get('checks', []) or []:
+        if not isinstance(check, dict):
+            raise GateError('Evidence check must be an object')
+        item = dict(check)
+        item.setdefault('test_layer', item.get('type') or 'unknown')
+        item.setdefault('task_id', '')
+        if 'exit_code' in item and not isinstance(item['exit_code'], int):
+            raise GateError('Invalid evidence exit code')
+        item.setdefault('executed_at', '')
+        item.setdefault('log_path', item.get('evidence', ''))
+        item.setdefault('screenshot_path', '')
+        checks.append(item)
+    value['checks'] = checks
+    value.setdefault('change_id', '')
+    value.setdefault('status', '')
+    value.setdefault('not_run', [])
+    return value
+
+
 def validate_evidence(acceptance_ids: list[str], report: dict):
+    report = normalize_evidence(report)
     if not acceptance_ids or len(set(acceptance_ids)) != len(acceptance_ids):
         raise GateError('Acceptance IDs required and must be unique')
     if report.get('producer') != 'verify-agent' or not re.fullmatch(r'[a-f0-9]{40,64}', report.get('commit', '')):
@@ -29,8 +55,8 @@ def validate_evidence(acceptance_ids: list[str], report: dict):
         covered.update(check.get('requirement_ids', []))
     if set(acceptance_ids) - covered:
         raise GateError('Acceptance evidence coverage incomplete')
-    if report.get('failures') or report.get('blocked_by'):
-        raise GateError('Unresolved failures or blockers')
+    if report.get('failures') or report.get('blocked_by') or report.get('not_run'):
+        raise GateError('Unresolved failures, blockers or not-run checks')
 
 
 def archive_change(root: Path, change_id: str, source: Path):

@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from docloop.evidence import archive_change, validate_evidence
+from docloop.evidence import archive_change, normalize_evidence, validate_evidence
 from docloop.governance import GateError
 
 
@@ -34,6 +34,17 @@ class EvidenceTests(unittest.TestCase):
                     target = archive_change(root, f'change-{index}', source)
                     self.assertTrue((target / name).is_file())
                     self.assertTrue((target / 'manifest.yaml').is_file())
+
+    def test_legacy_evidence_is_readable_but_not_gate_accepted(self):
+        legacy = {'producer': 'codex-main', 'commit': 'a' * 40, 'checks': [
+            {'id': 'V-001', 'test_case_id': 'TC-001', 'requirement_ids': ['AC-001'],
+             'type': 'static', 'result': 'passed', 'command_or_method': 'legacy',
+             'observed': 'ok', 'evidence': 'logs/V-001.txt'}]}
+        normalized = normalize_evidence(legacy)
+        self.assertEqual(normalized['checks'][0]['test_layer'], 'static')
+        self.assertEqual(normalized['checks'][0]['log_path'], 'logs/V-001.txt')
+        with self.assertRaises(GateError):
+            validate_evidence(['AC-001'], legacy)
 
     def test_producer_observation_and_commit_required(self):
         for key, value in [('producer', 'implement-agent'), ('commit', '')]:
