@@ -5,6 +5,25 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+from contextlib import contextmanager
+from contextvars import ContextVar
+
+_cancellation = ContextVar('docloop_git_cancellation', default=None)
+
+
+@contextmanager
+def cancellation_scope(signal):
+    token = _cancellation.set(signal)
+    try:
+        yield
+    finally:
+        _cancellation.reset(token)
+
+
+def check_cancelled():
+    signal = _cancellation.get()
+    if signal is not None and signal.is_set():
+        raise WorktreeError('准备已取消，现有工作区保留。')
 
 
 class WorktreeError(ValueError):
@@ -22,6 +41,7 @@ def safe_path(value):
 
 
 def git(repo, *args):
+    check_cancelled()
     try:
         options = dict(shell=False, timeout=30, capture_output=True, text=True,
                        encoding='utf-8', errors='replace')
@@ -43,6 +63,7 @@ def git(repo, *args):
                     command.extend(['-c', name + '.' + kind + '=' + ('false' if kind == 'required' else '')])
             if args and args[0] == 'diff':
                 args = ('diff', '--no-ext-diff', '--no-textconv', *args[1:])
+            check_cancelled()
             result = subprocess.run([*command, *args], check=True, **options)
             return result.stdout
     except (OSError, subprocess.SubprocessError) as exc:

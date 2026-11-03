@@ -75,8 +75,14 @@ class WorkbenchBrowserTests(unittest.TestCase):
         expect(page.locator('#active-model')).to_be_enabled()
         page.reload()
         expect(page.locator('#active-model')).to_have_value('deepseek-v4.1-flash')
+        page.locator('#requirement').fill('未配置模型的明确提示')
+        page.locator('#generate').click()
+        expect(page.locator('#notice')).to_contain_text('当前模型未配置')
+        page.locator('#requirement').fill('')
         page.locator('[data-page="settings"]').click()
         page.locator('#api-key').fill('browser-test-private-key')
+        page.locator('#demo-generation').check()
+        self.assertEqual(page.locator('#api-key').input_value(), 'browser-test-private-key')
         page.get_by_role('button', name='保存模型配置').click()
         expect(page.locator('#notice')).to_contain_text('模型配置已保存')
         page.reload()
@@ -85,7 +91,21 @@ class WorkbenchBrowserTests(unittest.TestCase):
         self.assertEqual(page.locator('#api-key').input_value(), '')
         page.locator('#active-model').select_option('gpt-6.1-sol')
         expect(page.locator('#active-model')).to_be_enabled()
-        page.locator('#generation-mode').select_option('sandbox')
+        self.assertEqual(page.locator('#generation-mode').count(), 0)
+        self.assertEqual(page.locator('.composer-tools #active-model').count(), 1)
+        page.locator('[data-page="settings"]').click()
+        page.locator('#demo-generation').check()
+        page.locator('[data-page="workspace"]').click()
+        self.assertTrue(page.evaluate("CSS.supports('appearance', 'base-select')"))
+        expect(page.locator('#active-model')).to_have_css('appearance', 'base-select')
+        page.locator('#active-model').click()
+        page.screenshot(path=str(self.evidence / 'model-select-open.png'), full_page=True, animations='disabled')
+        page.keyboard.press('ArrowDown')
+        page.keyboard.press('Enter')
+        expect(page.locator('#active-model')).to_have_value('deepseek-v4.1-flash')
+        expect(page.locator('#active-model')).to_be_enabled()
+        page.locator('#active-model').select_option('gpt-6.1-sol')
+        expect(page.locator('#active-model')).to_be_enabled()
         def task_drawer():
             toggle = page.locator('#drawer-toggle')
             if toggle.is_visible() and toggle.get_attribute('aria-expanded') != 'true':
@@ -292,6 +312,54 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.screenshot(path=str(self.evidence / 'workbench-blocked.png'), full_page=True,
                         animations='disabled')
         self.assertEqual(errors, [])
+        # 真实浏览器→异步Run→本地HTTP夹具等待→取消；绝不连接外部模型。
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from threading import Event, Thread
+        entered, release = Event(), Event()
+        class Provider(BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.rfile.read(int(self.headers.get('Content-Length', '0')))
+                entered.set()
+                release.wait(8)
+                try:
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(b'{}')
+                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                    return  # 取消HTTP等待后，夹具连接已关闭。
+            def log_message(self, *args):
+                return
+        provider = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
+        provider.daemon_threads = True
+        server_thread = Thread(target=provider.serve_forever, daemon=True)
+        server_thread.start()
+        try:
+            with tempfile.TemporaryDirectory(prefix='docloop-ui-repo-', dir=ROOT.anchor) as target:
+                subprocess.run(['git', '-C', target, 'init'], check=True, capture_output=True)
+                subprocess.run(['git', '-C', target, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@local',
+                    'commit', '--allow-empty', '-m', 'fixture'], check=True, capture_output=True)
+                page.locator('[data-page="settings"]').click()
+                page.locator('#model').select_option('deepseek-v4.1-flash')
+                expect(page.locator('#model')).to_be_enabled()
+                page.locator('#base-url').fill(f'http://127.0.0.1:{provider.server_port}')
+                page.locator('#api-key').fill('local-fixture-key')
+                page.get_by_role('button', name='保存模型配置').click()
+                expect(page.locator('#notice')).to_contain_text('模型配置已保存')
+                page.locator('#repository-path').fill(target)
+                page.locator('#register-repository').click()
+                expect(page.locator('#start-runtime')).to_be_enabled()
+                page.locator('#start-runtime').click()
+                expect(page.locator('#cancel-runtime')).to_be_enabled()
+                self.assertTrue(entered.wait(3))
+                page.locator('#cancel-runtime').click()
+                expect(page.locator('#runtime-status')).to_contain_text('取消')
+                expect(page.locator('#task-status')).to_have_text('已取消', timeout=3000)
+                page.screenshot(path=str(self.evidence / 'runtime-cancelled.png'), full_page=True, animations='disabled')
+        finally:
+            release.set()
+            provider.shutdown()
+            provider.server_close()
+            server_thread.join(timeout=5)
         from docloop.workbench import find_instance, stop_existing
         port = int(self.url.rsplit(':', 1)[1])
         self.assertEqual(find_instance(ROOT, self.data / 'data', port, 'sandbox'), self.url)

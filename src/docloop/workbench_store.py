@@ -286,35 +286,77 @@ class WorkbenchStore:
                 raise Conflict('审批基线校验失败。')
             return raw
 
+    def approval_record(self, project_id, spec_id):
+        spec = self.spec(project_id, spec_id)
+        with self.engine.connect() as connection:
+            for row in connection.execute(select(events).where(events.c.project_id == project_id,
+                    events.c.kind == 'spec.approved').order_by(events.c.created_at.desc())).mappings():
+                payload = json.loads(row['payload_json'])
+                if payload.get('spec_id') == spec_id and payload.get('sha256') == spec['approved_hash']:
+                    return {'sha256': spec['approved_hash'], 'approver': spec['approved_by'],
+                            'approved_at': row['created_at'], 'version': spec['revision']}
+        raise Conflict('审批审计记录缺失，请检查数据完整性。')
+
     def recover_interrupted_runs(self):
-        """服务获得独占数据目录锁后，将上次未完成的演示标记阻塞，不自动重跑。"""
+        """服务获得独占数据目录锁后，标记未完成运行，不自动重放外部操作。"""
         with self.engine.begin() as connection:
             pending = list(connection.execute(select(runs).where(runs.c.status == 'in_progress')).mappings())
             for row in pending:
-                result = {'status': 'blocked', 'mode': 'demo', 'interrupted': True,
-                          'error': '上次服务退出时运行尚未结束。请审阅记录后重新发起沙箱验证。',
+                result = {'status': 'blocked', 'mode': row['mode'], 'interrupted': True,
+                          'error': '上次服务退出时运行尚未结束。请审阅检查点与工作区后重新发起。',
                           'real_business_acceptance': False}
                 connection.execute(update(runs).where(runs.c.id == row['id'],
                     runs.c.status == 'in_progress').values(status='blocked', result_json=encoded(result)))
-                self._event(connection, row['project_id'], 'run.interrupted', {'run_id': row['id'], 'status': 'blocked'})
+                self._event(connection, row['project_id'], 'run.interrupted', {'run_id': row['id'], 'status': 'blocked', 'mode': row['mode']})
 
-    def start_run(self, project_id, spec_id):
+    def start_run(self, project_id, spec_id, mode='demo'):
+        if mode not in {'demo', 'runtime'}:
+            raise ValueError('不支持的运行模式。')
         self.approved_bytes(project_id, spec_id)
         row = {'id': uuid4().hex, 'project_id': project_id, 'spec_id': spec_id, 'status': 'in_progress',
-               'mode': 'demo', 'result_json': '{}', 'created_at': now()}
+               'mode': mode, 'result_json': '{}', 'created_at': now()}
         with self.engine.begin() as connection:
             connection.execute(insert(runs).values(**row))
-            self._event(connection, project_id, 'run.started', {'run_id': row['id'], 'spec_id': spec_id, 'mode': 'demo'})
+            self._event(connection, project_id, 'run.started', {'run_id': row['id'], 'spec_id': spec_id, 'mode': mode})
         return {**row, 'result': {}}
 
     def finish_run(self, project_id, run_id, result):
         with self.engine.begin() as connection:
+            mode = connection.execute(select(runs.c.mode).where(runs.c.id == run_id,
+                runs.c.project_id == project_id)).scalar_one_or_none()
             updated = connection.execute(update(runs).where(runs.c.id == run_id,
                 runs.c.project_id == project_id, runs.c.status == 'in_progress').values(
                 status=result['status'], result_json=encoded(result)))
             if updated.rowcount != 1:
                 raise Conflict('运行状态已变化。')
-            self._event(connection, project_id, 'run.finished', {'run_id': run_id, 'status': result['status'], 'mode': 'demo'})
+            self._event(connection, project_id, 'run.finished', {'run_id': run_id, 'status': result['status'], 'mode': mode})
+
+    def run(self, project_id, run_id):
+        with self.engine.connect() as connection:
+            row = connection.execute(select(runs).where(runs.c.id == run_id,
+                runs.c.project_id == project_id)).mappings().first()
+        if row is None:
+            raise NotFound('该项目中不存在此运行。')
+        value = dict(row)
+        value['result'] = json.loads(value.pop('result_json'))
+        return value
+
+    def request_cancel(self, project_id, run_id):
+        row = self.run(project_id, run_id)
+        if row['mode'] != 'runtime' or row['status'] != 'in_progress':
+            return
+        result = {**row['result'], 'cancel_requested': True}
+        with self.engine.begin() as connection:
+            updated = connection.execute(update(runs).where(runs.c.id == run_id,
+                runs.c.project_id == project_id, runs.c.status == 'in_progress').values(result_json=encoded(result)))
+            if updated.rowcount:
+                self._event(connection, project_id, 'run.cancel_requested',
+                    {'run_id': run_id, 'mode': 'runtime', 'status': 'cancel_requested'})
+
+    def pending_runs(self, mode):
+        with self.engine.connect() as connection:
+            return [dict(row) for row in connection.execute(select(runs).where(
+                runs.c.mode == mode, runs.c.status == 'in_progress')).mappings()]
 
     def history(self, project_id, table=runs, limit=100):
         with self.engine.connect() as connection:

@@ -8,7 +8,7 @@ Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作
 
 当前机器已准备运行环境；新机器首次需要 uv、Git 和网络下载依赖。启动脚本优先使用已安装环境，只在缺少依赖时安装锁定版本。日常操作无需输入 PowerShell。
 
-工作台采用“左侧任务区、右侧执行区”：左侧选择项目、搜索/选择任务、查看阶段，并在底部直接描述新需求；任务名自动取需求首行，点击↑创建任务。模型下拉可以直接切换，短模式选择为“演示 / 模型”。右侧展示真实执行记录，可筛选、展开、切换规格编辑审批并查看产物。
+工作台采用“左侧任务区、右侧执行区”：左侧选择项目、搜索/选择任务、查看阶段，并直接描述新需求；任务名自动取需求首行，点击↑创建任务。模型选择紧凑放在输入框底部，与附件、发送同一行，不再单占一行或另放模式下拉。演示规格在设置页明确勾选，未配置模型时不会自动转演示。所有下拉在支持的浏览器中使用统一的原生可定制菜单，保留键盘选择及不支持时的原生回退。右侧展示真实执行记录，可筛选、展开、切换规格编辑审批并查看产物。
 
 资料、历史运行、本地 Skills 与设置保留在左下辅助入口。仍支持 UTF-8 Markdown/TXT（单文件≤2MiB）、关键词检索、版本化来源、Spec Hash审批和 LangGraph 受控验证。任务沿用现有规格与运行数据，不需要数据库结构迁移；刷新保留项目和任务选择。手机端通过顶部“任务”按钮打开左侧抽屉。
 
@@ -16,7 +16,9 @@ Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作
 
 仅支持 **GPT 6.1 Sol** 和 **DeepSeek V4.1 Flash**。GPT通过本机Codex CLI复用已有登录，在只读临时工作区生成Spec，不复制登录令牌；DeepSeek通过Chat Completions调用官方`deepseek-flash`别名。模型选择和独立配置持久保存到数据目录`.settings/model-settings.json`；DeepSeek密钥用当前Windows用户DPAPI加密，API不回显密钥，留空沿用已保存值。切换和重启不丢配置；新机器仍需自己的Codex登录或DeepSeek Key。已配置模型默认用于规格生成，也可明确选择演示。GPT真实连通性及Spec生成已在隔离测试中验证；DeepSeek仅完成fixture验证，尚无真实Key验收。
 
-设置页可为当前项目登记干净的本地Git仓库，并为已批准的当前任务准备独立Worktree。准备绑定精确Spec Hash与Commit、拒绝脏源仓库，禁用Git hook/filter/fsmonitor/外部diff，不覆盖用户改动。当前只完成执行准备；Docker不可用或真实编码门禁未启用时明确阻止生成代码执行。完整Run取消、业务编码/修复/验收仍待后续闭环；只读Codex调用已支持超时、取消和Windows Job Object进程树清理。
+设置页可为当前项目登记干净的本地Git仓库，并为已批准的当前任务准备独立Worktree。准备绑定精确Spec Hash与Commit、拒绝脏源仓库，禁用Git hook/filter/fsmonitor/外部diff，不覆盖用户改动。当前只完成执行准备；Docker不可用或真实编码门禁未启用时明确阻止生成代码执行。真实业务Run的取消、编码/修复/验收仍待后续闭环；只读Codex调用已支持超时、取消和Windows Job Object进程树清理。
+
+设置页“启动规划与准备”创建独立runtime Run，后台LangGraph先复制审批凭据，再调用当前模型生成TASK/TC计划、校验AC映射并准备Worktree。支持取消模型等待（Codex及HTTP）、停止后续步骤、持久化检查点与计划文件、重启后标为blocked而不重放；首版只允许一个活动准备Run。已开始的Git步骤在安全边界处理取消，可能留下工作区，不宣称回滚。计划和取消记录都可在文档中心查看；真实编码、业务测试、修复及人工最终验收仍未启用，即使Docker可用也不会自动越过门禁。
 
 **当前默认是明确标记的 SQLite 沙箱。** Oracle 关系存储入口和 SQL 已准备，真实数据库未连接。所有“运行沙箱验证”都只检查受控文件与流程，不代表生成的 Spec 已完成业务编码或业务验收。
 
@@ -70,6 +72,7 @@ uv run docloop recover demo-001
 | `src/docloop/codex_runtime.py` | 单一Codex只读Runtime、输出预算及进程树清理 |
 | `src/docloop/worktree_runtime.py` | 显式登记仓库的幂等Worktree准备与快照 |
 | `src/docloop/execution_preparation.py` | 项目仓库绑定、审批门禁、准备API及执行阻断 |
+| `src/docloop/managed_runs.py` | 后台LangGraph准备Run、计划映射校验、取消和检查点 |
 | `src/docloop/workbench_static/` | 无 CDN 的 HTML/CSS/JS 工作台资源 |
 | `migrations/oracle/` | Oracle 工作台关系表 SQL，需在专用 Schema 审阅后执行 |
 | `.docloop/agents/` | 五个专业角色的源文档契约 |

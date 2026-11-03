@@ -8,6 +8,91 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WorkbenchApiTests(unittest.TestCase):
+    def test_service_lock_is_held_until_runtime_cleanup_finishes(self):
+        from unittest.mock import patch
+        from docloop.execution_lock import run_lock
+        from docloop.governance import GateError
+        root = Path(self.tmp.name) / 'other-service'
+        app = create_app(ROOT, root)
+        original = app.state.service.close
+        observed = []
+        def close():
+            with self.assertRaises(GateError):
+                with run_lock(root, 'workbench-service'):
+                    self.fail('Service lock released before worker cleanup')
+            observed.append(True)
+            original()
+        with patch.object(app.state.service, 'close', side_effect=close):
+            with TestClient(app, base_url='http://127.0.0.1'):
+                pass
+        self.assertEqual(observed, [True])
+    def test_runtime_wait_can_be_cancelled_without_entering_preparation(self):
+        from threading import Event
+        from unittest.mock import patch
+        entered = Event()
+        class Waiting:
+            def complete(self, messages, *, cancel_event):
+                entered.set()
+                cancel_event.wait(5)
+                raise RuntimeError('cancelled')
+        service = self.app.state.service
+        service.gateway.codex_runtime = Waiting()
+        service.gateway.configure('', 'gpt-6.1-sol', '')
+        spec = service.store.create_spec(self.pid, '准备', 'AC-001 规划功能', 'sandbox', [], [])
+        path = '/api/projects/' + self.pid + '/specs/' + spec['id']
+        self.assertEqual(self.client.post(path + '/runtime-runs', headers=self.headers, json={}).status_code, 409)
+        service.store.approve_spec(self.pid, spec['id'], spec['sha256'], 1, 'tester')
+        with patch('docloop.execution_preparation.ExecutionPreparation.binding', return_value={'path': 'fixture'}), \
+             patch('docloop.execution_preparation.ExecutionPreparation.prepare') as prepare:
+            started = self.client.post(path + '/runtime-runs', headers=self.headers, json={})
+            self.assertEqual(started.status_code, 200, started.text)
+            self.assertTrue(entered.wait(3))
+            rid = started.json()['id']
+            other = service.store.create_project('其他项目')['id']
+            wrong = '/api/projects/' + other + '/runtime-runs/' + rid + '/cancel'
+            self.assertEqual(self.client.post(wrong, headers=self.headers, json={}).status_code, 404)
+            endpoint = '/api/projects/' + self.pid + '/runtime-runs/' + rid
+            self.assertEqual(self.client.post(endpoint + '/cancel', headers=self.headers, json={}).status_code, 200)
+            result = service.runtime().wait(self.pid, rid, 5)
+            self.assertEqual(result['status'], 'cancelled')
+            self.assertFalse(result['result']['real_business_acceptance'])
+            prepare.assert_not_called()
+            self.assertEqual(self.client.get(endpoint).json()['status'], 'cancelled')
+
+    def test_runtime_plan_is_available_as_document_and_never_completes_business(self):
+        import json
+        from unittest.mock import patch
+        service = self.app.state.service
+        plan = {'tasks': [{'id': 'TASK-001', 'description': '准备功能', 'acceptance_ids': ['AC-001']}],
+            'test_cases': [{'id': 'TC-001', 'description': '验证功能', 'expected': '得到预期结果',
+                'task_ids': ['TASK-001'], 'acceptance_ids': ['AC-001']}]}
+        class Planner:
+            def complete(self, messages, *, cancel_event):
+                return {'content': json.dumps(plan), 'model': 'fixture', 'usage': {}}
+        service.gateway.codex_runtime = Planner()
+        service.gateway.configure('', 'gpt-6.1-sol', '')
+        spec = service.store.create_spec(self.pid, '准备', 'AC-001 规划功能', 'sandbox', [], [])
+        service.store.approve_spec(self.pid, spec['id'], spec['sha256'], 1, 'tester')
+        path = '/api/projects/' + self.pid + '/specs/' + spec['id']
+        with patch('docloop.execution_preparation.ExecutionPreparation.binding', return_value={'path': 'fixture'}), \
+             patch('docloop.execution_preparation.ExecutionPreparation.prepare', return_value={'docker_ready': True}):
+            run = self.client.post(path + '/runtime-runs', headers=self.headers, json={}).json()
+            result = service.runtime().wait(self.pid, run['id'], 5)
+        self.assertEqual(result['mode'], 'runtime')
+        self.assertEqual(result['status'], 'blocked')
+        documents = self.client.get(path + '/deliverables').json()['documents']
+        tasks = next(doc for doc in documents if doc['name'] == 'tasks.md')
+        text = self.client.get(path + '/deliverables/' + tasks['id']).json()['content']
+        self.assertIn('尚未执行', text)
+        self.assertIn('TASK-001', text)
+        record = next(doc for doc in documents if doc['name'] == 'plan.json')
+        planned = self.client.get(path + '/deliverables/' + record['id']).json()['content']
+        data = json.loads(planned)
+        source = Path(self.tmp.name) / data['input_path']
+        packet = json.loads(source.read_text(encoding='utf-8'))
+        self.assertEqual(packet['input_sha256'], data['input_sha256'])
+        self.assertTrue(packet['messages'])
+        self.assertFalse(any('/agent-inputs/' in doc['path'] for doc in documents))
     def test_model_options_and_persistent_selection_are_restricted(self):
         selected = self.client.post('/api/settings/model/select', headers=self.headers,
             json={'model': 'deepseek-v4.1-flash'})

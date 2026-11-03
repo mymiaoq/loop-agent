@@ -3,6 +3,8 @@ from threading import RLock, Event
 from urllib.parse import urlsplit
 import httpx
 from .reliability import Reliability, Limits, Blocked
+import asyncio
+from contextlib import suppress
 
 
 class ModelUnavailable(RuntimeError):
@@ -69,21 +71,52 @@ class ModelGateway:
                 'model': settings[1] if settings else '', 'credentials_storage': 'process-memory-only'}
 
     def complete(self, messages, *, cancel_event=None):
+        signal = cancel_event if cancel_event is not None else Event()
+        with self._lock:
+            self._active.add(signal)
+        try:
+            return self._complete(messages, signal)
+        finally:
+            with self._lock:
+                self._active.discard(signal)
+
+    async def _request(self, base, model, key, messages, signal):
+        async def invoke():
+            async with httpx.AsyncClient(transport=self.transport, timeout=35, follow_redirects=False) as client:
+                async with client.stream('POST', base + '/chat/completions', headers={
+                        'Authorization': 'Bearer ' + key} if key else {}, json={
+                        'model': model, 'messages': messages, 'stream': False, 'max_tokens': 4096}) as response:
+                    content = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        content.extend(chunk)
+                        if len(content) > 2 * 1024 * 1024:
+                            raise ModelUnavailable('模型响应过大，已停止处理。')
+                    return httpx.Response(response.status_code, content=bytes(content))
+        task = asyncio.create_task(asyncio.wait_for(invoke(), timeout=35))
+        try:
+            while not task.done():
+                if signal.is_set():
+                    raise ModelUnavailable('模型调用已取消。')
+                await asyncio.wait({task}, timeout=.05)
+            return await task
+        finally:
+            if not task.done():
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+
+    def _complete(self, messages, signal):
+        if signal.is_set():
+            raise ModelUnavailable('模型调用已取消。')
         if self.store is not None:
             profile = self.store.active()
             if not profile['enabled']:
                 raise ModelUnavailable('当前模型尚未配置，请在设置中保存连接。')
             if profile['provider'] == 'codex-cli':
-                signal = cancel_event if cancel_event is not None else Event()
-                with self._lock:
-                    self._active.add(signal)
                 try:
                     return self._codex().complete(messages, cancel_event=signal)
                 except RuntimeError:
                     raise ModelUnavailable('GPT调用未完成，请检查Codex登录、模型权限、取消或超时状态。') from None
-                finally:
-                    with self._lock:
-                        self._active.discard(signal)
             settings = (profile['base_url'], profile['api_model'], profile['api_key'])
         else:
             with self._lock:
@@ -91,20 +124,21 @@ class ModelGateway:
         if settings is None:
             raise ModelUnavailable('尚未配置真实模型接口；请选择沙箱演示或在设置中连接模型。')
         base, model, key = settings
-        reliability = Reliability(Limits(llm=4, model_rounds=4, task_seconds=120, run_seconds=120))
+        reliability = Reliability(Limits(llm=4, model_rounds=4, task_seconds=120, run_seconds=120), sleep=signal.wait)
 
         def operation():
+            if signal.is_set():
+                raise ModelUnavailable('模型调用已取消。')
             reliability.charge('llm')
             reliability.charge('model_rounds')
             try:
-                with httpx.Client(transport=self.transport, timeout=35, follow_redirects=False) as client:
-                    response = client.post(base + '/chat/completions', headers={
-                        'Authorization': 'Bearer ' + key} if key else {}, json={
-                        'model': model, 'messages': messages, 'stream': False, 'max_tokens': 4096})
+                response = asyncio.run(self._request(base, model, key, messages, signal))
             except httpx.TimeoutException:
                 raise TimeoutError('model request timed out') from None
             except httpx.TransportError:
                 raise ConnectionError('model network unavailable') from None
+            if signal.is_set():
+                raise ModelUnavailable('模型调用已取消。')
             if response.status_code == 429 or response.status_code >= 500:
                 raise ConnectionError('model provider temporarily unavailable')
             if response.status_code != 200:

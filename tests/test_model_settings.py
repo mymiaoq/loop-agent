@@ -7,6 +7,29 @@ from docloop.model_gateway import ModelGateway
 
 
 class ModelSettingsTests(unittest.TestCase):
+    def test_http_model_wait_can_be_cancelled_without_retry(self):
+        import asyncio
+        import concurrent.futures
+        import threading
+        import httpx
+        from docloop.model_gateway import ModelUnavailable
+        entered, stop = threading.Event(), threading.Event()
+        calls = []
+        async def provider(request):
+            calls.append(request)
+            entered.set()
+            await asyncio.sleep(5)
+            return httpx.Response(200, json={'choices': [{'message': {'content': 'late'}}]})
+        gateway = ModelGateway(transport=httpx.MockTransport(provider))
+        gateway.configure('https://fixture.local', 'fixture', 'dummy')
+        with concurrent.futures.ThreadPoolExecutor(1) as pool:
+            future = pool.submit(gateway.complete, [{'role': 'user', 'content': 'test'}], cancel_event=stop)
+            self.assertTrue(entered.wait(2))
+            self.assertEqual(gateway.cancel_all(), 1)
+            stop.set()
+            with self.assertRaises(ModelUnavailable):
+                future.result(timeout=1)
+        self.assertEqual(len(calls), 1)
     def test_shutdown_cancels_only_owned_codex_call(self):
         import concurrent.futures
         import threading

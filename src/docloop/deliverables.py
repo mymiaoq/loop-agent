@@ -8,7 +8,8 @@ MAX_BUNDLE = 8 * 1024 * 1024
 TITLES = {'spec.md': '需求规格', 'decisions.md': '决策记录', 'tasks.md': '执行计划',
           'checkList.md': '验收清单', 'evidence.yaml': '验证证据', 'review.yaml': '审查记录',
           'approval.json': '审批凭据', 'sources.json': '来源记录', 'manifest.yaml': '归档清单',
-          'verification.txt': '验证日志', 'result.json': '受控结果'}
+          'verification.txt': '验证日志', 'result.json': '受控结果', 'plan.json': '结构化任务与测试计划',
+          'preparation.json': '工作区准备记录', 'run-summary.json': '准备运行结论'}
 
 
 def catalog(store, project_id, spec_id):
@@ -65,7 +66,7 @@ def catalog(store, project_id, spec_id):
 def overview(data):
     spec = data['spec']
     lines = ['# 任务交付总览', '', spec['title'], '',
-             '> 当前为受控沙箱；文档汇编不代表真实业务验收，也不代表人工最终验收。', '',
+             '> 本任务包含演示或执行准备记录；文档汇编不代表真实业务验收，也不代表人工最终验收。', '',
              '## 需求与审批', f'- Spec ID：{spec["id"]}', f'- 修订：{spec["revision"]}',
              f'- 状态：{spec["status"]}', f'- SHA-256：{spec["sha256"]}', '', '## 全部运行']
     if not data['runs']:
@@ -73,6 +74,7 @@ def overview(data):
     for run in data['runs']:
         result = run['result'] or {}
         lines.extend([f'### {run["id"]}', f'- 时间：{run["created_at"]}',
+                      f'- 类型：{"规划与工作区准备" if run["mode"] == "runtime" else "受控演示"}（{run["mode"]}）',
                       f'- 实际状态：{run["status"]}', f'- Commit：{result.get("commit") or "未产生"}',
                       f'- 归档：{"已记录" if result.get("archive") else "未产生"}'])
         if result.get('error'):

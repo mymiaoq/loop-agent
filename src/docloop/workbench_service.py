@@ -3,6 +3,7 @@ import json
 import yaml
 from pathlib import Path
 from uuid import uuid4
+from threading import RLock
 from .contracts import TaskContext
 from .governance import write_json, sha256
 from .model_gateway import ModelGateway
@@ -29,11 +30,71 @@ class WorkbenchService:
         self.project_root = Path(project_root).resolve()
         self.store = store
         self.gateway = gateway or ModelGateway(settings_path=self.store.root / '.settings/model-settings.json')
+        self._runtime_lock, self._managed, self._closing = RLock(), None, False
+
+    def runtime(self):
+        with self._runtime_lock:
+            if self._closing:
+                from .workbench_store import Conflict
+                raise Conflict('工作台正在停止，不再启动新运行。')
+            if self._managed is None:
+                from .managed_runs import ManagedRuns
+                from .execution_preparation import ExecutionPreparation
+                self._managed = ManagedRuns(self.store, ExecutionPreparation(self.store), self._plan)
+            return self._managed
+
+    def _plan(self, spec, signal, run_id):
+        context = TaskContext(run_id)
+        _, _, context.rules = select_context(self.project_root, ['workflow'])
+        packet = SkillRegistry(self.project_root).build_agent_input('plan', vars(context), spec=spec)
+        packet['messages'][0]['content'] += ('\n只返回一个JSON对象，无Markdown代码围栏。'
+            'tasks:[{id: TASK-001, description: 具体任务, acceptance_ids:[AC-001]}]；'
+            'test_cases:[{id: TC-001, description: 步骤, expected: 可观测预期, '
+            'task_ids:[TASK-001], acceptance_ids:[AC-001]}]。'
+            '覆盖批准Spec所有AC，仅生成计划，不执行代码，不声称测试通过。不扩展需求。')
+        packet.pop('input_sha256', None)
+        packet['input_sha256'] = sha256(json.dumps(packet, ensure_ascii=False, sort_keys=True).encode('utf-8'))
+        invocation = uuid4().hex
+        source = self.store.root / 'runs' / run_id / '.docloop/changes' / run_id / 'agent-inputs' / (invocation + '.json')
+        write_json(source, packet, exclusive=True)
+        response = self.gateway.complete(packet['messages'], cancel_event=signal)
+        write_json(source.with_name(invocation + '-result.json'), {'model_invoked': True,
+            'model': response['model'], 'usage': response.get('usage', {})}, exclusive=True)
+        plan = json.loads(response['content'])
+        if not isinstance(plan, dict):
+            raise ValueError('规划输出必须为JSON对象。')
+        plan['model'] = response['model']
+        plan['skill_sources'] = packet['skills']
+        plan['input_path'] = source.relative_to(self.store.root).as_posix()
+        plan['input_sha256'] = packet['input_sha256']
+        return plan
+
+    def start_runtime(self, project_id, spec_id):
+        from .execution_preparation import ExecutionPreparation
+        from .workbench_store import Conflict
+        self.store.approved_bytes(project_id, spec_id)
+        if not ExecutionPreparation(self.store).binding(project_id):
+            raise Conflict('请先在设置中登记当前项目的Git仓库。')
+        if not self.gateway.public_config()['configured']:
+            raise Conflict('请先配置当前模型。')
+        return self.runtime().start(project_id, spec_id)
+
+    def stop_owned_runs(self):
+        with self._runtime_lock:
+            self._closing = True
+            if self._managed:
+                self._managed.cancel_all()
+        self.gateway.cancel_all()
+
+    def close(self):
+        self.stop_owned_runs()
+        if self._managed:
+            self._managed.close()
 
     def environment(self):
         return {'storage_backend': self.store.backend, 'data_root': str(self.store.root),
                 'model': self.gateway.public_config(), 'oracle': {'configured': self.store.backend == 'oracle',
-                'live_acceptance': False}, 'workflow_mode': 'controlled-demo',
+                'live_acceptance': False}, 'workflow_mode': 'demo-and-runtime-preparation',
                 'workflow_checkpoint': 'isolated-sqlite', 'business_code_execution': False}
 
     def state(self, project_id=None):
@@ -42,7 +103,12 @@ class WorkbenchService:
             projects = [self.store.create_project('默认项目')]
         project_id = project_id or projects[0]['id']
         from .execution_preparation import ExecutionPreparation
+        pending = self.store.pending_runs('runtime')
         return {'environment': self.environment(), 'projects': projects, 'project_id': project_id,
+                'runtime_busy': bool(pending),
+                'runtime_activity': {r['spec_id']: {'id': r['id'], 'spec_id': r['spec_id'], 'status': r['status'],
+                    'cancel_requested': json.loads(r['result_json']).get('cancel_requested', False)}
+                    for r in pending if r['project_id'] == project_id},
                 'repository': ExecutionPreparation(self.store).binding(project_id),
                 'documents': self.store.documents(project_id), 'specs': self.store.specs(project_id),
                 'runs': self.store.history(project_id), 'events': self.store.event_history(project_id),
@@ -60,12 +126,14 @@ class WorkbenchService:
                 'summary': source['ref'], 'detail': encoded_detail(source), 'result': 'loaded', 'created_at': None})
         labels = {'spec.created': '需求规格已生成', 'spec.saved': '规格修改已保存',
                   'spec.approved': '当前版本已审批', 'run.started': '开始受控运行',
-                  'run.finished': '受控运行已返回', 'run.interrupted': '运行被中断'}
+                  'run.finished': '受控运行已返回', 'run.interrupted': '运行被中断', 'run.cancel_requested': '请求取消准备'}
         run_events = {}
         for event in self.store.task_events(project_id, spec_id, run_ids):
             payload = event['payload']
             record = {'id': event['id'], 'type': 'error' if event['kind'] == 'run.interrupted' else 'stage',
-                'title': labels.get(event['kind'], event['kind']), 'summary': payload.get('status', ''),
+                'title': ('执行准备已返回' if event['kind'] == 'run.finished' else '开始规划与工作区准备')
+                    if payload.get('mode') == 'runtime' and event['kind'] in {'run.started', 'run.finished'}
+                    else labels.get(event['kind'], event['kind']), 'summary': payload.get('status', ''),
                 'detail': encoded_detail(payload), 'created_at': event['created_at'],
                 'result': payload.get('status', 'recorded'), 'run_id': payload.get('run_id'), 'event_kind': event['kind']}
             if payload.get('run_id'):
@@ -74,7 +142,9 @@ class WorkbenchService:
                 records.append(record)
         stage_names = {'_approval': '运行内基线检查', '_plan': '生成沙箱执行计划',
                        '_implement': '写入受控文件并提交', '_verify': '独立验证',
-                       '_review': '证据审查', '_archive': '归档受控产物'}
+                       '_review': '证据审查', '_archive': '归档受控产物',
+                       'runtime.approval': '执行准备：核对审批', 'runtime.plan': '执行准备：生成任务与测试计划',
+                       'runtime.prepare': '执行准备：检查工作区与门禁'}
         for run in reversed(task_runs):
             lifecycle = run_events.get(run['id'], [])
             records.extend(event for event in lifecycle if event['event_kind'] == 'run.started')

@@ -5,12 +5,12 @@ let state = null;
 let selected = null;
 let epoch = 0;
 let busy = 0;
-let generationChoice = null;
+let demoGeneration = false;
 try {
-  const remembered = sessionStorage.getItem('docloop:generation-mode');
-  if (['sandbox', 'real'].includes(remembered)) generationChoice = remembered;
+  const remembered = sessionStorage.getItem('docloop:demo-generation');
+  demoGeneration = remembered === null ? sessionStorage.getItem('docloop:generation-mode') === 'sandbox' : remembered === 'true';
 } catch {
-  generationChoice = null; // 浏览器禁用偏好存储时回退页面默认，模型配置仍由服务持久保存。
+  demoGeneration = false; // 无法恢复偏好时不默认调用演示。
 }
 const drafts = new Map();
 const preparationResults = new Map();
@@ -32,7 +32,7 @@ const titles = {
 };
 const statusNames = {
   draft: '待审批', approved: '待运行', in_progress: '执行中',
-  accepted: '已通过', blocked: '阻塞', failed: '失败',
+  accepted: '已通过', blocked: '阻塞', failed: '失败', cancelled: '已取消',
 };
 const taskMarks = {
   draft: '○', approved: '●', in_progress: '◐', accepted: '✓', blocked: '!', failed: '!',
@@ -42,7 +42,7 @@ const resultNames = {
   draft: '待审', ready: '就绪', in_progress: '执行中', implemented: '已实现',
   verified: '已验证', accepted: '已通过', passed: '通过', failed: '失败',
   blocked: '阻塞', loaded: '已加载', recorded: '已记录', error: '错误',
-  approved: '已批准', cancelled: '已取消', interrupted: '已中断',
+  approved: '已批准', cancelled: '已取消', interrupted: '已中断', planned: '已规划', cancel_requested: '取消中',
   active: '可检索', inactive: '已停用', superseded: '已替换',
 };
 const recordIcons = {
@@ -229,13 +229,14 @@ function render() {
   syncButtons();
 }
 
+function renderGenerationMode() {
+  $('demo-generation').checked = demoGeneration;
+  $('composer-mode').textContent = demoGeneration ? '演示规格 · 不调用模型' : '新建任务';
+  $('generate').title = demoGeneration ? '生成演示规格' : '使用当前模型生成需求规格';
+}
 function renderSettings() {
   const model = state.environment.model || {};
-  const real = $('generation-mode').querySelector('[value="real"]');
-  real.disabled = !model.configured;
-  real.textContent = '模型';
-  $('generation-mode').value = model.configured ? (generationChoice || 'real') : 'sandbox';
-  $('generation-mode').title = model.configured ? '选择需求规格的生成方式' : '当前模型未配置，可使用演示或到设置配置';
+  renderGenerationMode();
   $('base-url').value = model.base_url || '';
   $('model').value = model.model || 'gpt-6.1-sol';
   $('active-model').value = model.model || 'gpt-6.1-sol';
@@ -304,7 +305,8 @@ function renderRuns() {
     const heading = el('div', undefined, 'run-heading');
     heading.append(el('strong', run.id), el('span', statusNames[run.status] || run.status, 'pill'));
     node.append(heading, el('small', `${run.status} · ${run.mode} · ${formatTime(run.created_at)}`));
-    node.append(el('p', '沙箱演示 · 非真实业务验收', 'muted small'));
+    node.append(el('p', run.mode === 'runtime' ? '规划与工作区准备 · 未执行业务代码' : '沙箱演示 · 非真实业务验收', 'muted small'));
+    if (run.result?.reason) node.append(el('p', run.result.reason, 'muted'));
     const history = el('pre', typeof run.result?.history === 'string' ? run.result.history :
       JSON.stringify(run.result?.history || [], null, 2));
     node.append(history);
@@ -387,13 +389,15 @@ function syncButtons() {
   $('new-project').disabled = busy > 0;
   $('new-task').disabled = busy > 0;
   document.querySelectorAll('.task-item').forEach(item => { item.disabled = busy > 0; });
-  ['requirement', 'generation-mode', 'active-model', 'model'].forEach(id => { $(id).disabled = busy > 0; });
+  ['requirement', 'demo-generation', 'active-model', 'model'].forEach(id => { $(id).disabled = busy > 0; });
   $('spec-content').readOnly = busy > 0 || approved;
   $('artifacts').disabled = !execution?.artifacts?.length || busy > 0;
   $('copy-hash').disabled = !selected || busy > 0;
   ['upload', 'add-text', 'search', 'test-model'].forEach(id => { $(id).disabled = busy > 0; });
   $('register-repository').disabled = busy > 0;
   $('prepare-execution').disabled = busy > 0 || !state?.repository || selected?.status !== 'approved';
+  $('start-runtime').disabled = busy > 0 || !!state?.runtime_busy || !state?.repository || selected?.status !== 'approved';
+  $('cancel-runtime').disabled = busy > 0 || !state?.runtime_activity?.[selected?.id] || !!state.runtime_activity[selected.id].cancel_requested;
   ['record-filter', 'expand-all'].forEach(id => { $(id).disabled = !selected || busy > 0; });
   $('busy-status').hidden = busy === 0;
   $('main').setAttribute('aria-busy', String(busy > 0));
@@ -512,7 +516,7 @@ async function loadExecution() {
   renderExecution();
   renderTaskHeader();
   syncButtons();
-  if (taskStatus(selected) === 'in_progress' || runPending) schedulePoll(pid, sid);
+  if (taskStatus(selected) === 'in_progress' || state?.runtime_activity?.[sid] || runPending) schedulePoll(pid, sid);
 }
 function schedulePoll(pid, sid) {
   pollTimer = setTimeout(() => {
@@ -639,10 +643,11 @@ $('generate').addEventListener('click', () => action(async () => {
   const requirement = $('requirement').value.trim();
   const title = requirement.split('\n')[0].slice(0, 80);
   if (!requirement) throw new Error('请填写新任务需求。');
+  if (!demoGeneration && !state.environment.model.configured) throw new Error('当前模型未配置，请先在设置中保存连接；测试流程可明确启用演示规格。');
   const pid = state.project_id;
   const spec = await api(projectPath() + '/specs', {
     method: 'POST',
-    body: JSON.stringify({title, requirement, mode: $('generation-mode').value}),
+    body: JSON.stringify({title, requirement, mode: demoGeneration ? 'sandbox' : 'real'}),
   });
   if (state.project_id === pid) {
     await refresh(pid, spec.id);
@@ -827,10 +832,11 @@ $('test-model').addEventListener('click', () => action(async () => {
     await api('/api/settings/model/select', {method: 'POST', body: JSON.stringify({model: $(id).value})});
   } finally { await refresh(state.project_id); }
 }, $(id))));
-$('generation-mode').addEventListener('change', () => {
-  generationChoice = $('generation-mode').value;
-  try { sessionStorage.setItem('docloop:generation-mode', generationChoice); }
+$('demo-generation').addEventListener('change', () => {
+  demoGeneration = $('demo-generation').checked;
+  try { sessionStorage.setItem('docloop:demo-generation', String(demoGeneration)); }
   catch { notice('当前浏览器仅在此页面保留生成模式选择。'); }
+  renderGenerationMode();
 });
 $('register-repository').addEventListener('click', () => action(async () => {
   const pid = state.project_id;
@@ -849,7 +855,21 @@ $('prepare-execution').addEventListener('click', () => action(async () => {
 function renderPreparation() {
   $('preparation-status').textContent = preparationResults.get(state?.project_id + ':' + selected?.id) ||
     '当前任务尚未准备工作区；准备仅创建隔离Worktree，不运行生成代码。';
+  const active = state?.runtime_activity?.[selected?.id];
+  const latest = state?.runs?.find(run => run.mode === 'runtime' && run.spec_id === selected?.id);
+  $('runtime-status').textContent = active ? (active.cancel_requested ? '已请求取消，等待当前安全步骤结束。' : '规划与准备进行中，可取消；未执行业务代码。') :
+    latest ? (latest.result?.reason || latest.status) : '当前任务尚无准备Run。';
 }
+$('start-runtime').addEventListener('click', () => action(async () => {
+  const pid = state.project_id, sid = selected.id;
+  await api(projectPath() + '/specs/' + encodeURIComponent(sid) + '/runtime-runs', {method: 'POST', body: '{}'});
+  if (state.project_id === pid && selected?.id === sid) await refresh(pid, sid);
+}, $('start-runtime')));
+$('cancel-runtime').addEventListener('click', () => action(async () => {
+  const pid = state.project_id, sid = selected?.id, run = state.runtime_activity[sid];
+  await api(projectPath() + '/runtime-runs/' + encodeURIComponent(run.id) + '/cancel', {method: 'POST', body: '{}'});
+  if (state.project_id === pid && selected?.id === sid) await refresh(pid, sid);
+}, $('cancel-runtime')));
 window.addEventListener('beforeunload', event => {
   if (dirty()) {
     event.preventDefault();

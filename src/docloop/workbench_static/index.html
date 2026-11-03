@@ -58,20 +58,16 @@
     <section class="composer" aria-label="新建任务">
       <div class="composer-head">
         <span class="composer-label">新任务</span>
-        <span class="composer-note">不修改当前任务</span>
+        <span class="composer-note" id="composer-mode">新建任务</span>
       </div>
       <label class="sr-only" for="requirement">新任务需求</label>
       <textarea id="requirement" rows="3" maxlength="12000" placeholder="描述新任务的目标与验收条件…"></textarea>
-      <label class="sr-only" for="active-model">当前模型</label>
-      <select id="active-model" aria-label="当前模型"><option value="gpt-6.1-sol">GPT 6.1 Sol</option><option value="deepseek-v4.1-flash">DeepSeek V4.1 Flash</option></select>
       <div class="composer-tools">
         <button id="attachment" type="button" class="icon-button" title="打开资料库" aria-label="打开资料库">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l8-8"/></svg>
         </button>
-        <select id="generation-mode" aria-label="生成模式">
-          <option value="sandbox">演示</option>
-          <option value="real" disabled>模型</option>
-        </select>
+        <label class="sr-only" for="active-model">当前模型</label>
+        <select id="active-model" aria-label="当前模型"><option value="gpt-6.1-sol">GPT 6.1 Sol</option><option value="deepseek-v4.1-flash">DeepSeek V4.1 Flash</option></select>
         <button id="generate" type="button" class="send-button" aria-label="提交新任务" title="提交新任务">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
         </button>
@@ -283,6 +279,9 @@
               <button id="test-model" type="button">测试连接</button>
             </div>
           </form>
+          <div class="divider"></div>
+          <label class="demo-setting"><input id="demo-generation" type="checkbox"> 使用演示规格（不调用模型）</label>
+          <p class="muted">仅用于测试资料、审批和受控流程；不代表业务实现。</p>
         </article>
         <article class="panel">
           <div class="panel-heading">
@@ -296,6 +295,11 @@
           <p id="repository-binding" class="muted">尚未登记仓库</p>
           <div class="actions"><button id="register-repository" type="button">登记仓库</button><button id="prepare-execution" type="button">准备当前任务工作区</button></div>
           <p id="preparation-status" role="status" class="muted">准备仅创建隔离Worktree，不运行生成代码。</p>
+          <div class="divider"></div>
+          <h3>可取消的执行准备</h3>
+          <p class="muted">将调用当前模型，按批准规格生成任务与测试计划，再准备工作区。真实编码门禁仍保留。</p>
+          <div class="actions"><button id="start-runtime" type="button">启动规划与准备</button><button id="cancel-runtime" type="button">取消准备运行</button></div>
+          <p id="runtime-status" role="status" class="muted">选择当前任务后查看准备运行状态。</p>
         </article>
       </div>
     </section>

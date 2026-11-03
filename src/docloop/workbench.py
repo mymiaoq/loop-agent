@@ -90,12 +90,21 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
 
     @asynccontextmanager
     async def lifespan(app):
+        locked = False
         try:
             with run_lock(data_root, 'workbench-service'):
-                store.recover_interrupted_runs()
-                yield
+                locked = True
+                try:
+                    store.recover_interrupted_runs()
+                    yield
+                finally:
+                    try:
+                        service.close()
+                    finally:
+                        store.close()
         finally:
-            store.close()
+            if not locked:
+                store.close()
 
     app = FastAPI(title='DocLoop Workbench', lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.service = service
@@ -160,7 +169,7 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
         callback = getattr(app.state, 'stop_callback', None)
         if callback is None:
             raise Conflict('当前并非独立运行的工作台服务。')
-        service.gateway.cancel_all()
+        service.stop_owned_runs()
         callback()
         return {'ok': True, 'message': '已请求停止工作台，正在等待活动请求结束。'}
 
@@ -197,6 +206,18 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     def prepare_execution(project_id: str, spec_id: str):
         from .execution_preparation import ExecutionPreparation
         return ExecutionPreparation(store).prepare(project_id, spec_id)
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/runtime-runs')
+    def start_runtime(project_id: str, spec_id: str):
+        return service.start_runtime(project_id, spec_id)
+
+    @app.get('/api/projects/{project_id}/runtime-runs/{run_id}')
+    def runtime_status(project_id: str, run_id: str):
+        return store.run(project_id, run_id)
+
+    @app.post('/api/projects/{project_id}/runtime-runs/{run_id}/cancel')
+    def cancel_runtime(project_id: str, run_id: str):
+        return service.runtime().cancel(project_id, run_id)
 
     @app.get('/api/projects/{project_id}/specs/{spec_id}/execution')
     def execution(project_id: str, spec_id: str):
