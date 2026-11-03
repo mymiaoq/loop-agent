@@ -1,6 +1,9 @@
 ---
 name: security-check
 description: 范围明确的安全专项审查；用户明确要求或 task_context 显式选择时使用。
+version: 1.0.0
+risk_level: high
+timeout: 300
 ---
 
 ## 用途

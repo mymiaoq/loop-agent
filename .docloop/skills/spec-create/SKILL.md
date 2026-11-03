@@ -1,6 +1,9 @@
 ---
 name: spec-create
 description: 生成可审批 Spec 草稿；需求探索阶段时使用。
+version: 1.0.0
+risk_level: low
+timeout: 300
 ---
 
 ## 用途

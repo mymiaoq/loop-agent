@@ -1,12 +1,13 @@
 """工作台业务：引用资料、本地 Skills、需求草稿、不可变审批与受控运行。"""
 import json
+import os
 import re
 import yaml
 from pathlib import Path
 from uuid import uuid4
 from threading import RLock
 from .contracts import TaskContext
-from .governance import write_json, sha256
+from .governance import Governance, write_json, sha256
 from .model_gateway import ModelGateway, ModelUnavailable
 from .project import select_context
 from .skill_runtime import SkillRegistry
@@ -114,6 +115,34 @@ class WorkbenchService:
                 'documents': self.store.documents(project_id), 'specs': self.store.specs(project_id),
                 'runs': self.store.history(project_id), 'events': self.store.event_history(project_id),
                 'task_summaries': self.store.task_summaries(project_id)}
+
+    def approve_spec(self, project_id, spec_id, expected_hash, revision, approver):
+        """DB 审批 + 文件 baseline.json 投影；文件是 V2 的权威描述，DB 保留查询投影。"""
+        spec = self.store.approve_spec(project_id, spec_id, expected_hash, revision, approver)
+        record = self.store.approval_record(project_id, spec_id)
+        folder = self.store.root / 'baselines' / project_id / spec_id
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / 'spec.md').write_bytes(spec['content'].encode('utf-8'))
+        from .execution_preparation import ExecutionPreparation
+        binding = ExecutionPreparation(self.store).binding(project_id) or {}
+        baseline = {
+            'change_id': 'wb-' + spec_id,
+            'spec_sha256': spec['sha256'],
+            'source_bundle_sha256': sha256(json.dumps(spec['references'], ensure_ascii=False,
+                                                      sort_keys=True).encode('utf-8')),
+            'approver': record['approver'], 'approved_at': record['approved_at'],
+            'rules_version': Governance._tree_version(self.project_root / '.docloop/rules'),
+            'skills_version': Governance._tree_version(self.project_root / '.docloop/skills'),
+            'base_commit_sha': binding.get('baseline_commit', ''),
+            'origin': 'workbench', 'version': 2,
+        }
+        temporary = folder / ('baseline.json.' + uuid4().hex + '.tmp')
+        try:
+            write_json(temporary, baseline, exclusive=True)
+            os.replace(temporary, folder / 'baseline.json')
+        finally:
+            temporary.unlink(missing_ok=True)
+        return spec
 
     def execution(self, project_id, spec_id):
         spec = self.store.spec(project_id, spec_id)

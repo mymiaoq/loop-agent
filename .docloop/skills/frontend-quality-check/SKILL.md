@@ -1,6 +1,9 @@
 ---
 name: frontend-quality-check
 description: 前端 UI 专项质量检查；UI 任务且明确选中时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

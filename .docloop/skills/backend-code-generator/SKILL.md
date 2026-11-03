@@ -1,6 +1,9 @@
 ---
 name: backend-code-generator
 description: 后端分层代码实现；backend 任务显式选中时使用。
+version: 1.0.0
+risk_level: high
+timeout: 300
 ---
 
 ## 用途

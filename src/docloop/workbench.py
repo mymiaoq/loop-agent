@@ -237,7 +237,7 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
 
     @app.post('/api/projects/{project_id}/specs/{spec_id}/approve')
     def approve_spec(project_id: str, spec_id: str, body: Approval):
-        return store.approve_spec(project_id, spec_id, body.sha256, body.revision, body.approver)
+        return service.approve_spec(project_id, spec_id, body.sha256, body.revision, body.approver)
 
     @app.post('/api/projects/{project_id}/specs/{spec_id}/runs')
     def run_spec(project_id: str, spec_id: str, body: RunInput):

@@ -132,6 +132,13 @@ class WorkbenchApiTests(unittest.TestCase):
         approved = self.client.post(path + '/approve', headers=self.headers,
             json={'sha256': spec['sha256'], 'revision': spec['revision'], 'approver': '测试用户'})
         self.assertEqual(approved.status_code, 200, approved.text)
+        baseline = Path(self.tmp.name) / 'baselines' / self.pid / spec['id'] / 'baseline.json'
+        self.assertTrue(baseline.is_file())
+        import json
+        record = json.loads(baseline.read_text(encoding='utf-8'))
+        self.assertEqual(record['spec_sha256'], spec['sha256'])
+        self.assertEqual(record['approver'], '测试用户')
+        self.assertEqual(record['origin'], 'workbench')
         run = self.client.post(path + '/runs', headers=self.headers, json={'scenario': 'success'})
         self.assertEqual(run.status_code, 200, run.text)
         self.assertEqual(run.json()['status'], 'accepted')

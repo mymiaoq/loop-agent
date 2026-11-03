@@ -1,6 +1,6 @@
 # Phase 1 验收清单
 
-- [~] AC-220 baseline.json + 旧 approval 兼容（CLI 已加 + Phase 1 baseline；DB 投影待做）
+- [~] AC-220 baseline.json + 旧 approval 兼容（CLI + Phase 1 + workbench 投影；原子性/统一读取待做）
 - [~] AC-217/AC-224 状态分层/映射已加；workflow/DB 接线待做
 - [~] AC-221 evidence 统一/历史兼容（可选字段已加；完整迁移待做）
 - [x] AC-222 checklist.md canonical + checkList 兼容 + 大小写测试
@@ -8,7 +8,7 @@
 - [~] AC-217 错误分类/非重试权限/repair 拒绝（完整失败→修复→复验待做）
 - [ ] AC-219 预算
 - [~] AC-224 Workflow 显式最终验收节点/accept API（workbench/CLI/UI 接线待做）
-- [~] AC-228 15 唯一/全部路由/enterprise gate（元数据/执行器待做）
+- [~] AC-228 15 唯一/全部路由/enterprise gate/元数据（执行器待做）
 - [~] AC-229 企业 Profile 代码门禁（Rules 内容检查/审批待做）
 - [x] AC-223 gitignore/agent-inputs/indexes
 - [~] AC-213 三层测试命令/字段骨架（独立集成目录/自动发现待做）

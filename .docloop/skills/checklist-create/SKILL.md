@@ -1,6 +1,9 @@
 ---
 name: checklist-create
 description: 建立验收和测试追踪链；tasks.md 已生成时使用。
+version: 1.0.0
+risk_level: low
+timeout: 300
 ---
 
 ## 用途

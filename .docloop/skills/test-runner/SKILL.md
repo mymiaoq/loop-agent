@@ -1,6 +1,9 @@
 ---
 name: test-runner
 description: 执行本任务明确允许的验证；实现快速检查或独立验证阶段时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

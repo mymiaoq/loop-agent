@@ -1,6 +1,9 @@
 ---
 name: plan-create
 description: 已审批基线转为任务计划；基线已锁定且无阻塞时使用。
+version: 1.0.0
+risk_level: low
+timeout: 300
 ---
 
 ## 用途

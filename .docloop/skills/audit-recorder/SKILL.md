@@ -1,6 +1,9 @@
 ---
 name: audit-recorder
 description: 记录需求到 Commit 的关联；阶段切换和工具结果产生时时使用。
+version: 1.0.0
+risk_level: low
+timeout: 300
 ---
 
 ## 用途

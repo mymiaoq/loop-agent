@@ -1,6 +1,9 @@
 ---
 name: component-generator
 description: Vue 组件和页面实现；UI 任务显式选中时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

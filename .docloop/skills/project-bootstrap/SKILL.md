@@ -1,6 +1,9 @@
 ---
 name: project-bootstrap
 description: 检查项目和隔离工作区；审批后的执行准备时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

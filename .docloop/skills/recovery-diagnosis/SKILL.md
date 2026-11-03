@@ -1,6 +1,9 @@
 ---
 name: recovery-diagnosis
 description: 分类故障并建议有界恢复；异常或验证失败时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

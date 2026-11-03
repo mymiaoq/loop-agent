@@ -1,6 +1,9 @@
 ---
 name: document-parser
 description: 解析来源并保留定位；收到 Markdown 或其他设计资料时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

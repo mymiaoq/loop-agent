@@ -1,6 +1,9 @@
 ---
 name: project-archiving
 description: 归档正式文档和校验清单；验证和审查均通过时使用。
+version: 1.0.0
+risk_level: low
+timeout: 300
 ---
 
 ## 用途

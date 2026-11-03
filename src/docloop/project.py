@@ -7,6 +7,8 @@ from .superpowers import inspect_superpowers
 from .skill_runtime import SkillRegistry
 
 SKILL_FIELDS = ('name', 'description')
+SKILL_META_FIELDS = ('version', 'risk_level', 'timeout')
+RISK_LEVELS = {'low', 'medium', 'high'}
 REQUIRED_SKILLS = {'document-parser', 'spec-create', 'plan-create', 'checklist-create',
                    'project-bootstrap', 'test-runner', 'audit-recorder', 'recovery-diagnosis',
                    'project-archiving', 'component-generator', 'api-contract',
@@ -87,6 +89,14 @@ def inspect_project(root: Path):
             raise GateError(f'Skill metadata missing: {path}')
         if metadata['name'] != path.parent.name:
             raise GateError(f'Skill name differs from directory: {path}')
+        if any(not metadata.get(key) for key in SKILL_META_FIELDS):
+            raise GateError(f'Skill metadata incomplete: {path}')
+        if not re.fullmatch(r'\d+\.\d+\.\d+', str(metadata['version'])):
+            raise GateError(f'Skill version invalid: {path}')
+        if metadata['risk_level'] not in RISK_LEVELS:
+            raise GateError(f'Skill risk level invalid: {path}')
+        if not isinstance(metadata['timeout'], int) or metadata['timeout'] <= 0:
+            raise GateError(f'Skill timeout invalid: {path}')
         if any(f'## {section}' not in parts[2] for section in SKILL_SECTIONS):
             raise GateError(f'Skill contract incomplete: {path}')
         skills.append(metadata['name'])

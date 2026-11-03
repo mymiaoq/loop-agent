@@ -1,6 +1,9 @@
 ---
 name: frontend-design
 description: 前端视觉设计决策；新页面或明确视觉优化时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

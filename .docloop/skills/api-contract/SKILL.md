@@ -1,6 +1,9 @@
 ---
 name: api-contract
 description: API 契约和前端封装；API 任务显式选中时使用。
+version: 1.0.0
+risk_level: medium
+timeout: 300
 ---
 
 ## 用途

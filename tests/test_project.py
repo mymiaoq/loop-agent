@@ -20,6 +20,14 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn('ui-standard', report['active_rules'])
         self.assertNotIn('api-standard', report['active_rules'])
 
+    def test_skill_metadata_is_machine_readable(self):
+        import yaml
+        for path in sorted((ROOT / '.docloop/skills').glob('*/SKILL.md')):
+            frontmatter = yaml.safe_load(path.read_text(encoding='utf-8').split('---', 2)[1])
+            self.assertEqual(frontmatter['version'], '1.0.0')
+            self.assertIn(frontmatter['risk_level'], {'low', 'medium', 'high'})
+            self.assertGreater(frontmatter['timeout'], 0)
+
     def test_all_required_docloop_skills_are_routed_and_enterprise_is_gated(self):
         config = read_yaml(ROOT / '.docloop/project.yaml')
         refs = []
