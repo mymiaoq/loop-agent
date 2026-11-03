@@ -20,6 +20,7 @@ skill_runtime:
   stages:
     spec:
     - docloop:spec-create
+    - docloop:document-parser
     - superpowers:brainstorming
     plan:
     - docloop:project-bootstrap
@@ -34,6 +35,7 @@ skill_runtime:
     - superpowers:verification-before-completion
     review:
     - superpowers:requesting-code-review
+    - docloop:audit-recorder
     archive:
     - docloop:project-archiving
     - superpowers:finishing-a-development-branch
@@ -69,6 +71,7 @@ routing:
   - checklist-create
   ui:
   - component-generator
+  - frontend-design
   - frontend-quality-check
   api:
   - api-contract
