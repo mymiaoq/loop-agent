@@ -1,0 +1,49 @@
+verification:
+  change_id: 20261103-lightweight
+  status: passed
+  checks:
+    - id: V-001
+      requirement_ids: [AC-001]
+      type: static
+      command_or_method: '核对 dist 文件清单并删除四个旧 wheel/sdist'
+      result: passed
+      observed: '删除 1727044 bytes，约 1.65 MiB；dist 仅剩 .gitignore。运行环境约 177.7 MiB 保留。'
+      evidence: '终端文件清单；AGENTS.md 新增维护要求。'
+    - id: V-002
+      requirement_ids: [AC-002]
+      type: api
+      command_or_method: 'uv run python -m unittest discover -s tests -p test_memory_bounds.py -v'
+      result: passed
+      observed: '修复前历史读取峰值 12077266 bytes，检索峰值 26835268 bytes；修复后分别低于 4 MiB 和 8 MiB，2 项通过。'
+      evidence: 'tests/test_memory_bounds.py；数据全部位于系统临时目录。tracemalloc 只度量 Python 分配。'
+    - id: V-003
+      requirement_ids: [AC-003]
+      type: api
+      command_or_method: '独立临时 SQLite 工作台；urllib 连续 500 次 GET /api/state；按服务实际 PID 每100次采样 Get-Process；会话 token 关闭服务。'
+      result: passed
+      observed: 'WorkingSet64: 105205760,105345024,105578496,105590784,105590784 bytes。PrivateMemorySize64: 87539712,87629824,87855104,87855104,87855104 bytes。正常退出并清理临时目录。'
+      evidence: '终端实测；空项目，无真实模型调用。早期误采 Python 启动器进程的结果已废弃，不作为证据。'
+    - id: V-004
+      requirement_ids: [AC-003]
+      type: static
+      command_or_method: 'uv run docloop doctor'
+      result: passed
+      observed: 'status passed；本地 Superpowers 上游文件未修改。'
+      evidence: '终端 doctor 输出。'
+    - id: V-005
+      requirement_ids: [AC-003]
+      type: api
+      command_or_method: 'uv run python -m unittest discover -s tests -v'
+      result: passed
+      observed: '最终代码 131 项，130 通过，1 skipped（Windows symlink privilege unavailable），203.688 秒。'
+      evidence: '终端全套输出；所有本次测试使用临时数据，未访问用户工作台资料或模型设置。'
+  failures: []
+  review:
+    method: '独立只读审查存储查询和内存回归测试'
+    observed: '发现 FETCH FIRST 与 FOR UPDATE 在 Oracle 的兼容性问题；已改为 max(version) 标量子查询，外层保留行锁。审查后无其他阻塞发现。'
+    source: 'https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/SELECT.html'
+  remaining_risks:
+    - '有限测试无法保证任意数据量、并发或长期运行绝不 OOM。'
+    - '未执行浏览器堆内存、长期 soak、真实模型、Oracle 环境内存验收。'
+    - '状态接口仍返回完整项目/资料元数据和规格列表；极大规模历史需要单独分页设计。'
+    - '审计、审批与业务历史按现有契约保留，未自动删除；业务数据可随使用增长。'

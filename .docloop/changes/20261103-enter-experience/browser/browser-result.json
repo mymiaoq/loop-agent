@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "viewport_widths": [
+    1366,
+    1920,
+    390
+  ],
+  "console_errors": [],
+  "flows": [
+    "document import",
+    "local Skill-backed sandbox draft",
+    "dirty refresh",
+    "save in flight lock",
+    "Hash approval",
+    "isolated LangGraph run",
+    "reload restore",
+    "local Skill preview"
+  ],
+  "oracle_live": "not_run",
+  "provider_inference": "not_run"
+}

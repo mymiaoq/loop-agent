@@ -52,6 +52,105 @@ class WorkbenchBrowserTests(unittest.TestCase):
         (cls.evidence / 'server.log').write_text(cls.log_path.read_text(encoding='utf-8', errors='replace'), encoding='utf-8')
         cls.temp.cleanup()
 
+    def test_a_enter_submits_shift_enter_and_ime_do_not(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.goto(self.url)
+        page.locator('[data-page="settings"]').click()
+        page.locator('#demo-generation').check()
+        page.keyboard.press('Escape')
+        requests = []
+        page.on('request', lambda request: requests.append(request.post_data_json)
+                if request.method == 'POST' and request.url.endswith('/analysis-tasks') else None)
+        field = page.locator('#requirement')
+        field.fill('回车体验任务')
+        field.press('Shift+Enter')
+        expect(field).to_have_value('回车体验任务\n')
+        field.press('Enter')
+        expect(page.locator('#task-title')).to_have_text('回车体验任务')
+        expect(field).to_have_value('')
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0]['requirement'], '回车体验任务')
+        expect(page.locator('#generate')).to_be_enabled()
+        field.fill('中文选词')
+        field.dispatch_event('keydown', {'key': 'Enter', 'code': 'Enter', 'isComposing': True})
+        field.dispatch_event('keydown', {'key': 'Enter', 'code': 'Enter', 'keyCode': 229})
+        field.dispatch_event('keydown', {'key': 'Enter', 'code': 'Enter', 'repeat': True})
+        expect(field).to_have_value('中文选词')
+        self.assertEqual(len(requests), 1)
+        field.fill('   ')
+        field.press('Enter')
+        expect(page.locator('#notice-text')).to_have_text('请填写新任务需求。')
+        self.assertEqual(len(requests), 1)
+
+    def test_a_ui_dropdowns_share_model_picker(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.goto(self.url)
+        expect(page.locator('#project option')).not_to_have_count(0)
+        styles = page.locator('select').evaluate_all('nodes => nodes.map(node => ({id: node.id, appearance: getComputedStyle(node).appearance}))')
+        expected = next(item['appearance'] for item in styles if item['id'] == 'active-model')
+        self.assertTrue(all(item['appearance'] == expected for item in styles), styles)
+
+    def test_a_ui_dropdown_fallback_keeps_arrows(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+
+        def legacy_styles(route):
+            response = route.fetch()
+            css = response.text().replace('@supports (appearance: base-select)',
+                                          '@supports (unsupported-picker: unavailable)')
+            route.fulfill(response=response, body=css)
+
+        page.route('**/app.css', legacy_styles)
+        page.goto(self.url)
+        styles = page.locator('select').evaluate_all('nodes => nodes.map(node => ({id: node.id, image: getComputedStyle(node).backgroundImage}))')
+        self.assertTrue(all(item['image'] != 'none' for item in styles), styles)
+
+    def test_a_ui_skills_show_names_with_legacy_service(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        # 旧进程尚未重启时也必须显示真实名称，不得退化成无名按钮。
+        page.route('**/api/skills', lambda route: route.fulfill(json={'skills': [{
+            'ref': 'docloop:spec-create', 'name': 'spec-create',
+            'path': '.docloop/skills/spec-create/SKILL.md', 'sha256': 'a' * 64}]}))
+        page.goto(self.url)
+        page.locator('[data-page="skills"]').click()
+        expect(page.locator('#skill-list strong')).to_have_text('spec-create')
+        page.locator('#skill-list button').click()
+        expect(page.locator('#modal-title')).to_contain_text('spec-create')
+        expect(page.locator('#modal-body')).to_contain_text('输入 Schema')
+
+    def test_a_ui_demo_checkbox_does_not_use_entire_row(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.goto(self.url)
+        for width in (1920, 1366, 390):
+            page.set_viewport_size({'width': 1920, 'height': 900})
+            page.locator('[data-page="settings"]').click()
+            page.set_viewport_size({'width': width, 'height': 900})
+            checkbox = page.locator('#demo-generation')
+            label = page.locator('.demo-setting')
+            checkbox.uncheck()
+            label.scroll_into_view_if_needed()
+            self.assertLessEqual(checkbox.bounding_box()['width'], 20)
+            self.assertLessEqual(label.bounding_box()['height'], 32)
+            panel = label.locator('..').bounding_box()
+            bounds = label.bounding_box()
+            page.mouse.click(panel['x'] + panel['width'] - 30, bounds['y'] + bounds['height'] / 2)
+            expect(checkbox).not_to_be_checked()
+            label.click()
+            expect(checkbox).to_be_checked()
+            checkbox.focus()
+            page.keyboard.press('Space')
+            expect(checkbox).not_to_be_checked()
+            self.assertTrue(page.locator('#auxiliary-modal').evaluate('(node) => node.scrollWidth <= node.clientWidth + 1'))
+            page.screenshot(path=str(self.evidence / f'ui-settings-{width}.png'), animations='disabled')
+            page.keyboard.press('Escape')
+        self.assertEqual(errors, [])
+
     def test_control_toolbar_does_not_overlap_active_view(self):
         page = self.browser.new_page()
         self.addCleanup(page.close)

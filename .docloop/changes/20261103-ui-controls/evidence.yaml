@@ -1,0 +1,43 @@
+verification:
+  change_id: 20261103-ui-controls
+  status: passed
+  checks:
+    - id: V-001
+      requirement_ids: [AC-001]
+      type: browser
+      command_or_method: 'test_a_ui_dropdowns_share_model_picker; test_a_ui_dropdown_fallback_keeps_arrows; CUA实际展开'
+      result: passed
+      observed: '修前项目/场景appearance=none，模型为base-select；修前回退路径模型/记录箭头丢失。修后全页面下拉一致，禁用base-select分支时所有箭头保留。'
+      evidence: 'tests/acceptance/test_workbench_browser.py；浏览器终端输出。'
+    - id: V-002
+      requirement_ids: [AC-002]
+      type: browser
+      command_or_method: '旧API字段fixture；正常本地Skills实际展示与预览'
+      result: passed
+      observed: '修前旧服务fixture的strong为空；修后显示spec-create并打开输入Schema说明。CUA检查正常服务30行含实际名称、中文名、功能与查看按钮。'
+      evidence: 'test_a_ui_skills_show_names_with_legacy_service；CUA DOM及视觉。'
+    - id: V-003
+      requirement_ids: [AC-003]
+      type: browser
+      command_or_method: 'test_a_ui_demo_checkbox_does_not_use_entire_row; CUA尺寸'
+      result: passed
+      observed: '修前空白点击导致勾选；尺寸断言复现checkbox宽177px。修后CUA checkbox宽13px、label宽177px/高19.1875px。1920/1366/390均通过空白、文字、Space操作及无横向溢出检查。'
+      evidence: 'browser/ui-settings-1920.png、ui-settings-1366.png、ui-settings-390.png。'
+    - id: V-004
+      requirement_ids: [AC-004]
+      type: static
+      command_or_method: 'uv run python -m unittest discover -s tests -v; uv run docloop doctor; node --check src/docloop/workbench_static/app.js; git diff --check'
+      result: passed
+      observed: '131项：130通过，1因Windows符号链接权限跳过，199.066秒；doctor passed；JS语法与diff检查通过。'
+      evidence: '终端输出；测试业务数据全部在系统临时目录。静态前端无独立构建步骤。'
+    - id: V-005
+      requirement_ids: [AC-001, AC-002, AC-003, AC-004]
+      type: browser
+      command_or_method: 'uv run python -m unittest discover -s tests/acceptance -p test_workbench_browser.py -v'
+      result: passed
+      observed: '最终7项通过，41.851秒；无新增页面脚本错误。独立复核确认回退箭头及窄屏checkbox尺寸，无阻塞问题。'
+      evidence: 'browser/ 下截图及browser-result.json；终端完整输出。'
+  failures: []
+  remaining_risks:
+    - '回退路径通过禁用base-select样式分支模拟；未逐一运行旧版浏览器。'
+    - '本次未修改模型/Oracle适配器，未执行真实模型推理或Oracle现场验收。'

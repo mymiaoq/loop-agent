@@ -831,14 +831,20 @@ async function loadSkills() {
   const result = await api('/api/skills');
   fillList($('skill-list'), result.skills, skill => {
     const node = listRow();
-    node.append(el('strong', skill.display_name), el('small', skill.description));
+    // 服务升级前的响应只有 name，也必须显示实际 Skill 名称。
+    const name = skill.name || skill.ref;
+    const description = skill.description || '查看此 Skill 的本地说明。';
+    node.append(el('strong', name));
+    if (skill.display_name && skill.display_name !== name) node.append(el('small', skill.display_name));
+    node.append(el('small', description));
     const actions = el('div', undefined, 'row-actions');
     actions.append(makeButton('只读查看', async () => {
       const parts = skill.ref.replace(/^skill:\/\//, '').split(/[/:]/).filter(Boolean);
       if (parts.length !== 2) throw new Error('Skill 引用格式无法识别：' + skill.ref);
       const view = await api('/api/skills/' + parts.map(encodeURIComponent).join('/'));
       const body = view.content.replace(/^---[\s\S]*?---\s*/, '');
-      modal(skill.display_name, [el('p', skill.description), showDocument(body, true)]);
+      modal(skill.display_name ? `${name} · ${skill.display_name}` : name,
+        [el('p', description), showDocument(body, true)]);
     }));
     node.append(actions);
     return node;
@@ -936,10 +942,10 @@ $('modal').addEventListener('keydown', event => {
   }
 });
 $('requirement').addEventListener('keydown', event => {
-  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-    event.preventDefault();
-    if (!$('generate').disabled) $('generate').click();
-  }
+  // 中文输入法确认候选词的回车不能触发任务提交。
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!event.repeat && !$('generate').disabled) $('generate').click();
 });
 $('search-query').addEventListener('keydown', event => {
   if (event.key === 'Enter') {

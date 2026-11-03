@@ -1,0 +1,29 @@
+verification:
+  change_id: 20261103-enter-experience
+  status: partial
+  checks:
+    - id: V-001
+      requirement_ids: [AC-001]
+      type: browser
+      command_or_method: 'test_a_enter_submits_shift_enter_and_ime_do_not'
+      result: passed
+      observed: '修前Enter后任务标题仍为请选择任务，测试失败；修后Enter创建一项任务并清空输入。Shift+Enter保留换行，isComposing/keyCode229/repeat不提交，空输入显示提示。'
+      evidence: 'tests/acceptance/test_workbench_browser.py；最终完整8项浏览器验收通过。'
+    - id: V-002
+      requirement_ids: [AC-003]
+      type: static
+      command_or_method: 'unittest discover -s tests（排除 test_execution_preparation、test_worktree_runtime）；docloop doctor；node --check；git diff --check'
+      result: partial
+      observed: '框架 118 项通过，155.219 秒；doctor passed；JS 语法与 diff 检查通过。test_execution_preparation、test_worktree_runtime 共 13 项未执行：两者在盘根 D:\ 建临时目录，当前沙箱拒绝该进程写入盘根；这两个模块本次未修改。浏览器复跑受沙箱限制（Playwright 无法建临时目录），沿用 15:27 的 8 项通过记录。'
+      evidence: '终端输出及browser/目录。全部测试业务数据为系统临时目录。'
+    - id: V-003
+      requirement_ids: [AC-002]
+      type: human
+      command_or_method: 'CUA临时工作台用户流程试用'
+      result: blocked
+      observed: '仅打开首页和新建项目原生输入框；浏览器工具因无法确认当前URL而终止。没有完成完整用户流程。'
+      evidence: '聊天中已如实说明；没有将自动测试或演示推断为完整人工体验。'
+  failures: []
+  remaining_risks:
+    - '未完成完整人工用户流程及真实模型推理验收。'
+    - '中文输入法保护通过真实浏览器派发组合事件验证，未覆盖所有实体输入法。'

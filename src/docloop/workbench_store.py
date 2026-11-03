@@ -1,5 +1,6 @@
 """工作台关系存储；显式 SQLite 沙箱与 Oracle 使用同一数据契约。"""
 import hashlib
+import heapq
 import json
 import re
 from datetime import datetime, timezone
@@ -140,11 +141,15 @@ class WorkbenchStore:
         content_hash = digest(raw)
         with self.engine.begin() as connection:
             self._project(connection, project_id)
-            previous = list(connection.execute(select(documents).where(
-                documents.c.project_id == project_id, documents.c.name == name).order_by(
-                documents.c.version.desc()).with_for_update()).mappings())
-            if previous and previous[0]['status'] == 'active' and previous[0]['content_hash'] == content_hash:
-                return {'document': self._document(previous[0]), 'deduplicated': True}
+            latest_version = select(func.max(documents.c.version)).where(
+                documents.c.project_id == project_id, documents.c.name == name).scalar_subquery()
+            previous = connection.execute(select(documents.c.version, documents.c.status,
+                documents.c.content_hash, documents.c.id, documents.c.project_id,
+                documents.c.name, documents.c.created_at).where(
+                documents.c.project_id == project_id, documents.c.name == name,
+                documents.c.version == latest_version).with_for_update()).mappings().first()
+            if previous and previous['status'] == 'active' and previous['content_hash'] == content_hash:
+                return {'document': self._document(previous), 'deduplicated': True}
             # 对象先落盘再激活数据库行；失败时至多遗留未引用对象，不发布缺失文件。
             path = self.root / 'objects' / content_hash[:2] / content_hash
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -155,7 +160,7 @@ class WorkbenchStore:
                 if digest(path.read_bytes()) != content_hash:
                     raise Conflict('资料对象校验失败，请检查本地文件库。')
             row = {'id': uuid4().hex, 'project_id': project_id, 'name': name,
-                   'version': previous[0]['version'] + 1 if previous else 1, 'status': 'active',
+                   'version': previous['version'] + 1 if previous else 1, 'status': 'active',
                    'content_hash': content_hash, 'content': text, 'created_at': now()}
             connection.execute(update(documents).where(documents.c.project_id == project_id,
                 documents.c.name == name, documents.c.status == 'active').values(status='superseded'))
@@ -174,7 +179,8 @@ class WorkbenchStore:
     def documents(self, project_id):
         with self.engine.connect() as connection:
             self._project(connection, project_id)
-            return [self._document(row) for row in connection.execute(select(documents).where(
+            columns = [column for column in documents.c if column.name != 'content']
+            return [self._document(row) for row in connection.execute(select(*columns).where(
                 documents.c.project_id == project_id).order_by(documents.c.created_at.desc())).mappings()]
 
     def deactivate_document(self, project_id, document_id):
@@ -192,21 +198,26 @@ class WorkbenchStore:
         tokens = set(re.findall(r'[a-z0-9_]+', query))
         for phrase in re.findall(r'[\u4e00-\u9fff]+', query):
             tokens.update(phrase[i:i + 2] for i in range(max(1, len(phrase) - 1)))
-        with self.engine.connect() as connection:
-            self._project(connection, project_id)
-            rows = list(connection.execute(select(documents).where(documents.c.project_id == project_id,
-                        documents.c.status == 'active')).mappings())
-        hits = []
-        for row in rows:
-            lines = row['content'].splitlines()
-            for start in range(0, len(lines), 12):
-                snippet = '\n'.join(lines[start:start + 16])[:3000]
-                score = sum(snippet.lower().count(token) for token in tokens)
-                if score:
-                    hits.append({'document_id': row['id'], 'name': row['name'], 'version': row['version'],
-                        'content_hash': row['content_hash'], 'line_start': start + 1,
-                        'line_end': min(start + 16, len(lines)), 'text': snippet, 'score': score})
-        return sorted(hits, key=lambda hit: -hit['score'])[:limit]
+        if limit <= 0:
+            return []
+
+        def candidates():
+            # 每次只保留一份正文，避免资料数和命中片段数放大内存。
+            with self.engine.connect() as connection:
+                self._project(connection, project_id)
+                rows = connection.execute(select(documents).where(
+                    documents.c.project_id == project_id,
+                    documents.c.status == 'active')).mappings()
+                for row in rows:
+                    lines = row['content'].splitlines()
+                    for start in range(0, len(lines), 12):
+                        snippet = '\n'.join(lines[start:start + 16])[:3000]
+                        score = sum(snippet.lower().count(token) for token in tokens)
+                        if score:
+                            yield {'document_id': row['id'], 'name': row['name'], 'version': row['version'],
+                                'content_hash': row['content_hash'], 'line_start': start + 1,
+                                'line_end': min(start + 16, len(lines)), 'text': snippet, 'score': score}
+        return heapq.nlargest(limit, candidates(), key=lambda hit: hit['score'])
 
     @staticmethod
     def _spec(row):
