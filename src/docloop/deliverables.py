@@ -9,7 +9,8 @@ TITLES = {'spec.md': '需求规格', 'decisions.md': '决策记录', 'tasks.md':
           'checkList.md': '验收清单', 'evidence.yaml': '验证证据', 'review.yaml': '审查记录',
           'approval.json': '审批凭据', 'sources.json': '来源记录', 'manifest.yaml': '归档清单',
           'verification.txt': '验证日志', 'result.json': '受控结果', 'plan.json': '结构化任务与测试计划',
-          'preparation.json': '工作区准备记录', 'run-summary.json': '准备运行结论'}
+          'preparation.json': '工作区准备记录', 'run-summary.json': '准备运行结论',
+          'difference-report.json': '补充资料差异与影响报告'}
 
 
 def catalog(store, project_id, spec_id):

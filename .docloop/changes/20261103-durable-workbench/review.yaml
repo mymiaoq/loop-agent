@@ -1,0 +1,47 @@
+review:
+  change_id: 20261103-durable-workbench
+  status: passed
+  method: independent_read_only_agent_review_and_regressions
+  reviewers:
+    - durable_review
+  findings:
+    - id: R-001
+      severity: P1
+      issue: 持久取消可能在关闭或重启时被覆盖
+      resolution: 取消优先于shutdown，恢复时取消终结，回归通过
+    - id: R-002
+      severity: P2
+      issue: 失败分析无法显式重试
+      resolution: 允许原分析Run显式恢复，冻结消息复用，回归通过
+    - id: R-003
+      severity: P2
+      issue: 新审批与补充批次状态跨存储竞态
+      resolution: 审批对账幂等，启动及批次完成后核对，旧运行失效，回归通过
+    - id: R-004
+      severity: P2
+      issue: 暂停期间更换仓库导致旧计划输入漂移
+      resolution: 绑定快照并在继续和准备前校验
+    - id: R-005
+      severity: P1
+      issue: 旧发布可能上传至重新登记的其他仓库远端
+      resolution: 固定仓库和目标指纹，变更则拒绝，同仓库断网可重试
+    - id: R-006
+      severity: P2
+      issue: 冻结或提交后账本前中断无法恢复
+      resolution: 重试核对冻结文件、HEAD来源父提交与Git Blob，不以工作区清洁作为唯一依据
+    - id: R-007
+      severity: P2
+      issue: CRLF与Git文本属性可能改变审批字节
+      resolution: 按原字节写入Git对象并校验Hash，CRLF和属性组合回归通过
+    - id: R-008
+      severity: P2
+      issue: Windows长路径与读写共享导致发布失败
+      resolution: 发布路径压缩并保留source_path，短暂共享冲突有界重试
+    - id: R-009
+      severity: P2
+      issue: 控制栏新增后与记录筛选区重叠
+      resolution: 实际截图发现并增加真实记录尺寸回归，补齐Grid行定义
+  remaining_blockers: []
+  limitations:
+    - 真实模型语义效果与真实Oracle未进行本次验收
+    - 强制终止进程不代表已完成物理断电试验

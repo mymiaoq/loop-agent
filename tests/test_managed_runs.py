@@ -129,7 +129,7 @@ class ManagedRunTests(unittest.TestCase):
         service.cancel(self.pid, run['id'])
         self.join(service, run['id'])
 
-    def test_close_cancels_and_joins_owned_workers(self):
+    def test_close_preserves_interrupted_and_joins_owned_workers(self):
         self.approve()
         entered = Event()
         def planner(spec, stop, rid):
@@ -141,7 +141,7 @@ class ManagedRunTests(unittest.TestCase):
         self.assertTrue(entered.wait(3))
         service.close()
         self.services.remove(service)
-        self.assertEqual('cancelled', service.status(self.pid, run['id'])['status'])
+        self.assertEqual('interrupted', service.status(self.pid, run['id'])['status'])
         self.assertEqual({}, service._workers)
 
 

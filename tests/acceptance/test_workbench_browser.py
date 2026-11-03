@@ -45,11 +45,116 @@ class WorkbenchBrowserTests(unittest.TestCase):
         cls.browser.close()
         cls.playwright.stop()
         if cls.process.poll() is None:
-            cls.process.terminate()
+            from docloop.workbench import stop_existing
+            stop_existing(ROOT, cls.data / 'data', int(cls.url.rsplit(':', 1)[1]))
         cls.process.wait(timeout=15)
         cls.log.close()
         (cls.evidence / 'server.log').write_text(cls.log_path.read_text(encoding='utf-8', errors='replace'), encoding='utf-8')
         cls.temp.cleanup()
+
+    def test_control_toolbar_does_not_overlap_active_view(self):
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        page.goto(self.url)
+        state = page.request.get(self.url + '/api/state').json()
+        headers = {'X-DocLoop-Token': state['csrf_token']}
+        project = page.request.post(self.url + '/api/projects', headers=headers, data={'name': '布局回归'}).json()
+        root = self.url + '/api/projects/' + project['id']
+        spec = page.request.post(root + '/specs', headers=headers,
+            data={'title': '布局回归', 'requirement': '验证完整运行记录布局', 'mode': 'sandbox'}).json()
+        page.request.post(root + '/specs/' + spec['id'] + '/approve', headers=headers,
+            data={'sha256': spec['sha256'], 'revision': spec['revision'], 'approver': 'fixture'})
+        page.request.post(root + '/specs/' + spec['id'] + '/runs', headers=headers, data={'scenario': 'success'})
+        page.goto(self.url + '/?project_id=' + project['id'] + '&task_id=' + spec['id'])
+        expect(page.locator('#generate')).to_be_enabled()
+        for width in (1366, 1920, 390):
+            page.set_viewport_size({'width': width, 'height': 900})
+            self.assertTrue(page.evaluate('''() => {
+                const bottom = Math.max(...[...document.querySelectorAll('.run-controls button')]
+                    .map(node => node.getBoundingClientRect().bottom));
+                const view = document.querySelector('.view:not([hidden])').getBoundingClientRect();
+                return bottom <= view.top + 1;
+            }'''), f'Run controls overlap active view at {width}')
+
+    def test_durable_supplement_and_publication_versions(self):
+        page = self.browser.new_page(viewport={'width': 1366, 'height': 900})
+        self.addCleanup(page.close)
+        page.goto(self.url)
+        state = page.request.get(self.url + '/api/state').json()
+        headers = {'X-DocLoop-Token': state['csrf_token']}
+        project = page.request.post(self.url + '/api/projects', headers=headers, data={'name': '持久工作台验收'}).json()
+        page.goto(self.url + '/?project_id=' + project['id'])
+        page.locator('[data-page="settings"]').click()
+        page.locator('#demo-generation').check()
+        page.keyboard.press('Escape')
+        page.locator('#requirement').fill('持久资料任务\n需要导出版本化文档')
+        page.locator('#generate').click()
+        expect(page.locator('#task-title')).to_have_text('持久资料任务')
+        expect(page.locator('#save-spec')).to_be_enabled(timeout=10000)
+        sid = page.evaluate('window.docloopState.specs[0].id')
+        original = page.locator('#spec-content').input_value()
+        edited = original + '\n用户未保存的说明\n'
+        page.locator('#spec-content').fill(edited)
+        for name in ('documents', 'runs', 'skills', 'settings'):
+            page.locator('[data-page="' + name + '"]').click()
+            expect(page.locator('#auxiliary-modal')).to_be_visible()
+            self.assertFalse(page.locator('#workspace').evaluate('(node)=>node.hidden'))
+            if name == 'skills':
+                expect(page.locator('#skill-list')).to_contain_text('需求规格整理')
+                self.assertNotIn('.docloop/', page.locator('#skill-list').inner_text())
+            page.keyboard.press('Escape')
+            expect(page.locator('#auxiliary-modal')).not_to_be_visible()
+            self.assertEqual(edited, page.locator('#spec-content').input_value())
+        page.locator('#save-spec').click()
+        expect(page.locator('#dirty')).to_have_text('')
+        page.reload()
+        expect(page.locator('#task-title')).to_have_text('持久资料任务')
+        self.assertEqual(1, len(page.request.get(self.url + '/api/state?project_id=' + project['id']).json()['runs']))
+        page.locator('#task-supplement').click()
+        expect(page.locator('#attach-current-task')).to_be_checked()
+        page.locator('#paste-name').fill('补充导出规则.md')
+        page.locator('#paste-content').fill('新增要求：导出Markdown并记录版本。')
+        page.locator('#add-text').click()
+        expect(page.locator('#add-text')).to_be_enabled()
+        page.keyboard.press('Escape')
+        root = self.url + '/api/projects/' + project['id'] + '/specs/' + sid
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            updates = page.request.get(root + '/updates').json()['updates']
+            if updates and updates[0]['status'] == 'waiting_confirmation':
+                break
+            time.sleep(.1)
+        self.assertEqual('waiting_confirmation', updates[0]['status'])
+        page.locator('#task-updates').click()
+        expect(page.locator('#modal-body')).to_contain_text('新增要求')
+        expect(page.locator('#modal-body')).to_contain_text('业务代码功能未确认')
+        page.screenshot(path=str(self.evidence / 'supplement-difference.png'), full_page=True, animations='disabled')
+        page.keyboard.press('Escape')
+        with tempfile.TemporaryDirectory(prefix='docloop-publication-ui-') as directory:
+            repo, remote = Path(directory) / 'repo', Path(directory) / 'remote.git'
+            subprocess.run(['git', 'init', str(repo)], check=True, capture_output=True)
+            subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@local',
+                            'commit', '--allow-empty', '-m', 'fixture'], check=True, capture_output=True)
+            subprocess.run(['git', '-C', str(repo), 'remote', 'add', 'origin', str(remote)], check=True, capture_output=True)
+            bound = page.request.post(self.url + '/api/projects/' + project['id'] + '/repository',
+                headers=headers, data={'path': str(repo)})
+            self.assertEqual(200, bound.status)
+            page.locator('#refresh').click()
+            expect(page.locator('#refresh')).to_be_enabled()
+            page.locator('#artifacts').click()
+            page.get_by_role('button', name='Git 版本与上传').click()
+            page.get_by_role('button', name='冻结产物并本地提交').click()
+            expect(page.locator('#modal-body')).to_contain_text('已本地提交，待上传', timeout=20000)
+            page.get_by_role('button', name='上传 / 重试此版本').click()
+            expect(page.locator('#modal-body')).to_contain_text('远端分支与标签已确认', timeout=20000)
+            page.screenshot(path=str(self.evidence / 'publication-confirmed.png'), full_page=True, animations='disabled')
+            page.get_by_role('button', name='查看版本索引').click()
+            expect(page.locator('#modal-body')).to_contain_text('产物版本索引')
+            page.get_by_role('button', name='返回版本列表').click()
+            page.get_by_role('button', name='查看版本清单').click()
+            expect(page.locator('#modal-body')).to_contain_text('source_code_commit')
+            expect(page.locator('#modal-body')).to_contain_text('sha256')
 
     def test_full_browser_flow_layout_and_refresh(self):
         page = self.browser.new_page(viewport={'width': 1366, 'height': 1000})
@@ -58,6 +163,13 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         page.goto(self.url)
+        def navigate(name):
+            if page.locator('#auxiliary-modal').is_visible():
+                page.locator('#auxiliary-modal .dialog-close').click()
+            toggle = page.locator('#drawer-toggle')
+            if toggle.is_visible() and toggle.get_attribute('aria-expanded') != 'true':
+                toggle.click()
+            page.locator('[data-page="' + name + '"]').click()
         def controlled_generation(route):
             body = route.request.post_data_json
             if route.request.method == 'POST' and body.get('mode') == 'real':
@@ -79,7 +191,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.locator('#generate').click()
         expect(page.locator('#notice')).to_contain_text('当前模型未配置')
         page.locator('#requirement').fill('')
-        page.locator('[data-page="settings"]').click()
+        navigate('settings')
         page.locator('#api-key').fill('browser-test-private-key')
         page.locator('#demo-generation').check()
         self.assertEqual(page.locator('#api-key').input_value(), 'browser-test-private-key')
@@ -93,9 +205,9 @@ class WorkbenchBrowserTests(unittest.TestCase):
         expect(page.locator('#active-model')).to_be_enabled()
         self.assertEqual(page.locator('#generation-mode').count(), 0)
         self.assertEqual(page.locator('.composer-tools #active-model').count(), 1)
-        page.locator('[data-page="settings"]').click()
+        navigate('settings')
         page.locator('#demo-generation').check()
-        page.locator('[data-page="workspace"]').click()
+        navigate('workspace')
         self.assertTrue(page.evaluate("CSS.supports('appearance', 'base-select')"))
         expect(page.locator('#active-model')).to_have_css('appearance', 'base-select')
         page.locator('#active-model').click()
@@ -107,23 +219,26 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.locator('#active-model').select_option('gpt-6.1-sol')
         expect(page.locator('#active-model')).to_be_enabled()
         def task_drawer():
+            if page.locator('#auxiliary-modal').is_visible():
+                page.locator('#auxiliary-modal .dialog-close').click()
             toggle = page.locator('#drawer-toggle')
             if toggle.is_visible() and toggle.get_attribute('aria-expanded') != 'true':
                 toggle.click()
         original_project = page.locator('#project').input_value()
         page.locator('#generate').click()
         expect(page.locator('#notice')).to_contain_text('请填写')
-        page.locator('[data-page="documents"]').click()
+        navigate('documents')
         page.locator('#paste-name').fill('审批来源-长名称-用于验证行号和版本.md')
         page.locator('#paste-content').fill('项目资料导入后必须人工审批。\n审批需要保留Spec版本、来源和指纹。')
         page.locator('#add-text').click()
         expect(page.locator('#document-list')).to_contain_text('审批来源')
-        page.locator('[data-page="workspace"]').click()
+        navigate('workspace')
         self.assertEqual(page.locator('#spec-title').count(), 0)
         expect(page.locator('#active-model option')).to_have_count(2)
         page.locator('#requirement').fill('资料导入与审批\n导入项目资料并审批Spec，保留来源与版本。')
         page.locator('#generate').click()
         expect(page.locator('#spec-detail')).to_be_visible()
+        expect(page.locator('#save-spec')).to_be_enabled(timeout=10000)
         expect(page.locator('#references')).to_contain_text('审批来源')
         original = page.locator('#spec-content').input_value()
         edited = original + '\nAC-003：验收工作台刷新恢复。\n<script>window.artifactInjected=true</script>\n'
@@ -143,7 +258,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         self.assertTrue(page.locator('#spec-content').evaluate('(node)=>node.readOnly'),
                         'Editor accepts unsaved edits while save is in flight')
         held[0].continue_()
-        expect(page.locator('#spec-revision')).to_contain_text('2')
+        expect(page.locator('#spec-revision')).to_contain_text('3')
         page.unroute('**/api/projects/*/specs/*')
         page.locator('#approve-spec').click()
         expect(page.locator('#modal')).to_be_visible()
@@ -152,19 +267,19 @@ class WorkbenchBrowserTests(unittest.TestCase):
         expect(page.locator('#spec-status')).to_have_text('已批准')
         page.locator('#run-spec').click()
         expect(page.locator('#run-spec')).to_be_enabled(timeout=30000)
-        page.locator('[data-page="runs"]').click()
+        navigate('runs')
         expect(page.locator('#run-list')).to_contain_text('accepted')
         expect(page.locator('#run-list')).to_contain_text('非真实业务验收')
         page.reload()
         page.locator('[data-view="spec"]').click()
         expect(page.locator('#spec-status')).to_have_text('已批准')
         expect(page.locator('#spec-content')).to_have_value(edited)
-        page.locator('[data-page="documents"]').click()
+        navigate('documents')
         page.locator('#paste-name').fill('审批来源-长名称-用于验证行号和版本.md')
         page.locator('#paste-content').fill('新版资料：不同于旧版的业务内容。')
         page.locator('#add-text').click()
         expect(page.locator('#document-list')).to_contain_text('版本 2')
-        page.locator('[data-page="workspace"]').click()
+        navigate('workspace')
         page.locator('[data-view="spec"]').click()
         expect(page.locator('#references')).to_contain_text('v1')
         expect(page.locator('#references')).to_contain_text('历史引用快照')
@@ -223,22 +338,22 @@ class WorkbenchBrowserTests(unittest.TestCase):
         task_drawer()
         page.screenshot(path=str(self.evidence / 'workbench-mobile-tasks.png'), full_page=True,
                         animations='disabled')
-        page.locator('[data-page="skills"]').click()
-        expect(page.locator('#skill-list')).to_contain_text('brainstorming')
-        page.locator('#skill-list .row').filter(has_text='superpowers/skills/brainstorming/').get_by_role('button').click()
-        expect(page.locator('#modal-body')).to_contain_text('.docloop/superpowers/skills/brainstorming/SKILL.md')
+        navigate('skills')
+        expect(page.locator('#skill-list')).to_contain_text('需求与方案分析')
+        page.locator('#skill-list .row').filter(has_text='需求与方案分析').get_by_role('button').click()
+        expect(page.locator('#modal-body')).to_contain_text('澄清目标、比较方案并形成设计')
         page.screenshot(path=str(self.evidence / 'workbench-mobile-skill-dialog.png'), full_page=True,
                         animations='disabled')
         page.keyboard.press('Escape')
         expect(page.locator('#modal')).not_to_be_visible()
         task_drawer()
-        page.locator('[data-page="settings"]').click()
+        navigate('settings')
         expect(page.locator('#environment-info')).to_contain_text('sandbox-sqlite')
         task_drawer()
         page.once('dialog', lambda dialog: dialog.accept('浏览器隔离项目'))
         page.locator('#new-project').click()
         task_drawer()
-        page.locator('[data-page="workspace"]').click()
+        navigate('workspace')
         page.locator('[data-view="spec"]').click()
         expect(page.locator('#spec-empty')).to_be_visible()
         new_project = page.locator('#project').input_value()
@@ -247,7 +362,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         task_drawer()
         expect(page.locator('#project')).to_have_value(new_project)
         page.locator('#project').select_option(original_project)
-        page.locator('[data-page="workspace"]').click()
+        navigate('workspace')
         page.locator('[data-view="spec"]').click()
         expect(page.locator('#spec-status')).to_have_text('已批准')
         page.set_viewport_size({'width': 1366, 'height': 1000})
@@ -334,11 +449,11 @@ class WorkbenchBrowserTests(unittest.TestCase):
         server_thread = Thread(target=provider.serve_forever, daemon=True)
         server_thread.start()
         try:
-            with tempfile.TemporaryDirectory(prefix='docloop-ui-repo-', dir=ROOT.anchor) as target:
+            with tempfile.TemporaryDirectory(prefix='docloop-ui-repo-') as target:
                 subprocess.run(['git', '-C', target, 'init'], check=True, capture_output=True)
                 subprocess.run(['git', '-C', target, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@local',
                     'commit', '--allow-empty', '-m', 'fixture'], check=True, capture_output=True)
-                page.locator('[data-page="settings"]').click()
+                navigate('settings')
                 page.locator('#model').select_option('deepseek-v4.1-flash')
                 expect(page.locator('#model')).to_be_enabled()
                 page.locator('#base-url').fill(f'http://127.0.0.1:{provider.server_port}')

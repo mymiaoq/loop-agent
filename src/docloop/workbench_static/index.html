@@ -126,6 +126,15 @@
         <button type="button" data-view="spec" role="tab" aria-selected="false">需求规格</button>
       </div>
 
+      <div class="run-controls" aria-label="任务运行控制">
+        <button id="task-start" type="button">启动规划与准备</button>
+        <button id="task-pause" type="button">暂停</button>
+        <button id="task-resume" type="button">继续 / 恢复</button>
+        <button id="task-cancel" type="button">取消任务</button>
+        <button id="task-supplement" type="button">补充资料</button>
+        <button id="task-updates" type="button">资料变更</button>
+      </div>
+
       <div id="execution-view" class="view">
         <div class="record-toolbar">
           <label class="check">
@@ -210,6 +219,8 @@
             <span id="file-name" class="file-name">未选择文件</span>
             <button id="upload" type="button" class="primary">上传资料</button>
           </div>
+          <label class="check"><input id="attach-current-task" type="checkbox">补充到当前任务，暂停并分析差异</label>
+          <p id="attach-task-label" class="muted"></p>
           <p class="upload-hint">也可以把 .md / .txt 文件拖到上方区域。</p>
           <div class="divider"></div>
           <label class="field-label" for="paste-name">文本资料名称</label>
@@ -247,7 +258,7 @@
       <header class="page-head">
         <span class="eyebrow">本地能力</span>
         <h2>本地 Skills</h2>
-        <p class="muted">只读查看当前磁盘内容与指纹。加载不代表模型已遵从。</p>
+        <p class="muted">查看能力名称、功能与本地说明。加载不代表模型已遵从。</p>
       </header>
       <div id="skill-list" class="list"></div>
     </section>
@@ -305,6 +316,14 @@
     </section>
   </main>
 </div>
+
+<dialog id="auxiliary-modal" class="auxiliary-modal" aria-labelledby="auxiliary-title">
+  <div class="dialog-head"><h2 id="auxiliary-title"></h2>
+    <form method="dialog"><button class="icon-button dialog-close" aria-label="关闭辅助功能">×</button></form>
+  </div>
+  <div id="auxiliary-body" class="dialog-body"></div>
+  <p id="auxiliary-error" class="error" role="alert" hidden></p>
+</dialog>
 
 <dialog id="modal" aria-labelledby="modal-title">
   <div class="dialog-head">

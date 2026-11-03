@@ -21,6 +21,10 @@ let activeView = 'execution';
 let pollTimer = null;
 let runPending = false;
 let noticeTimer = null;
+let auxiliaryPage = null;
+let auxiliaryTrigger = null;
+const auxiliaryHomes = new Map();
+let currentUpdates = [];
 const recordExpansion = new Map();
 
 const titles = {
@@ -33,6 +37,7 @@ const titles = {
 const statusNames = {
   draft: '待审批', approved: '待运行', in_progress: '执行中',
   accepted: '已通过', blocked: '阻塞', failed: '失败', cancelled: '已取消',
+  paused: '已暂停', interrupted: '可恢复', succeeded: '分析完成', superseded: '已被新需求替代',
 };
 const taskMarks = {
   draft: '○', approved: '●', in_progress: '◐', accepted: '✓', blocked: '!', failed: '!',
@@ -44,6 +49,7 @@ const resultNames = {
   blocked: '阻塞', loaded: '已加载', recorded: '已记录', error: '错误',
   approved: '已批准', cancelled: '已取消', interrupted: '已中断', planned: '已规划', cancel_requested: '取消中',
   active: '可检索', inactive: '已停用', superseded: '已替换',
+  succeeded: '分析完成', paused: '已暂停',
 };
 const recordIcons = {
   stage: 'M12 4l6 8-6 8-6-8z',
@@ -124,6 +130,10 @@ async function action(fn, button) {
   } catch (error) {
     const message = error.message || '操作失败，请重试。';
     notice(message, true);
+    if ($('auxiliary-modal').open) {
+      $('auxiliary-error').textContent = message;
+      $('auxiliary-error').hidden = false;
+    }
     if ($('modal').open) {
       let target = $('modal-error');
       if (!target) {
@@ -293,7 +303,7 @@ function renderSpec() {
 
   fillList($('skill-sources'), selected.skill_sources, source => {
     const node = listRow();
-    node.append(el('strong', source.ref), el('small', source.path + ' · ' + source.sha256));
+    node.append(el('strong', source.display_name || '本地工作能力'), el('small', source.description || '按当前阶段采用项目规范'));
     return node;
   }, '未记录 Skill 来源');
   syncButtons();
@@ -370,7 +380,8 @@ async function copyText(text) {
 }
 
 function taskStatus(spec) {
-  return state?.task_summaries?.[spec?.id]?.status || spec?.status || 'draft';
+  const latest = state?.task_summaries?.[spec?.id]?.status;
+  return latest === 'succeeded' ? spec?.status || 'draft' : latest || spec?.status || 'draft';
 }
 function updateUrl() {
   const url = new URL(location.href);
@@ -381,8 +392,10 @@ function updateUrl() {
 }
 function syncButtons() {
   const approved = selected?.status === 'approved';
-  $('save-spec').disabled = !selected || approved || busy > 0;
-  $('approve-spec').disabled = !selected || approved || dirty() || busy > 0;
+  const latest = execution?.runs?.find(run => ['runtime', 'analysis'].includes(run.mode));
+  const activeAnalysis = latest?.mode === 'analysis' && ['in_progress', 'paused', 'interrupted'].includes(latest.status);
+  $('save-spec').disabled = !selected || approved || busy > 0 || activeAnalysis;
+  $('approve-spec').disabled = !selected || approved || dirty() || busy > 0 || activeAnalysis;
   $('run-spec').disabled = !approved || dirty() || busy > 0;
   $('generate').disabled = !state?.project_id || busy > 0;
   $('project').disabled = busy > 0;
@@ -397,7 +410,15 @@ function syncButtons() {
   $('register-repository').disabled = busy > 0;
   $('prepare-execution').disabled = busy > 0 || !state?.repository || selected?.status !== 'approved';
   $('start-runtime').disabled = busy > 0 || !!state?.runtime_busy || !state?.repository || selected?.status !== 'approved';
+  $('task-start').disabled = $('start-runtime').disabled;
   $('cancel-runtime').disabled = busy > 0 || !state?.runtime_activity?.[selected?.id] || !!state.runtime_activity[selected.id].cancel_requested;
+  $('task-pause').disabled = busy > 0 || latest?.status !== 'in_progress' || !!state?.runtime_activity?.[selected?.id]?.control;
+  $('task-resume').disabled = busy > 0 || !(['paused', 'interrupted'].includes(latest?.status) || latest?.mode === 'analysis' && latest?.status === 'blocked');
+  $('task-cancel').disabled = busy > 0 || !['in_progress', 'paused', 'interrupted'].includes(latest?.status);
+  $('task-supplement').disabled = busy > 0 || !selected;
+  $('task-updates').disabled = busy > 0 || !selected;
+  $('attach-current-task').disabled = !selected;
+  $('attach-task-label').textContent = selected ? '当前任务：' + selected.title : '尚未选择任务，仅可存入项目资料库。';
   ['record-filter', 'expand-all'].forEach(id => { $(id).disabled = !selected || busy > 0; });
   $('busy-status').hidden = busy === 0;
   $('main').setAttribute('aria-busy', String(busy > 0));
@@ -490,12 +511,24 @@ function setView(view) {
     button.setAttribute('aria-selected', String(button.dataset.view === view)));
 }
 function setPage(page) {
-  document.querySelectorAll('.page').forEach(node => { node.hidden = node.id !== page; });
-  document.querySelectorAll('[data-page]').forEach(button =>
-    button.classList.toggle('active', button.dataset.page === page));
-  const title = page === 'workspace' ? titles.workspace[0] : titles[page][0];
-  $('page-title').textContent = title;
-  document.title = `DocLoop · ${title}`;
+  $('workspace').hidden = false;
+  if (page === 'workspace') {
+    closeAuxiliary();
+    return;
+  }
+  if (!auxiliaryHomes.has(page)) {
+    const marker = document.createComment('auxiliary-' + page);
+    $(page).before(marker);
+    auxiliaryHomes.set(page, marker);
+  }
+  closeAuxiliary(false);
+  auxiliaryPage = page;
+  auxiliaryTrigger = document.activeElement;
+  $('auxiliary-title').textContent = titles[page][0];
+  $('auxiliary-error').hidden = true;
+  $('auxiliary-body').append($(page));
+  $(page).hidden = false;
+  $('auxiliary-modal').showModal();
 }
 
 async function loadExecution() {
@@ -513,10 +546,14 @@ async function loadExecution() {
     '/specs/' + encodeURIComponent(sid) + '/execution');
   if (ticket !== executionEpoch || pid !== state?.project_id || sid !== selected?.id) return;
   execution = result;
+  const updates = await api('/api/projects/' + encodeURIComponent(pid) + '/specs/' + encodeURIComponent(sid) + '/updates');
+  if (ticket !== executionEpoch || pid !== state?.project_id || sid !== selected?.id) return;
+  currentUpdates = updates.updates;
   renderExecution();
   renderTaskHeader();
   syncButtons();
-  if (taskStatus(selected) === 'in_progress' || state?.runtime_activity?.[sid] || runPending) schedulePoll(pid, sid);
+  if (taskStatus(selected) === 'in_progress' || state?.runtime_activity?.[sid] || runPending ||
+      currentUpdates.some(item => ['waiting_pause', 'analyzing'].includes(item.status))) schedulePoll(pid, sid);
 }
 function schedulePoll(pid, sid) {
   pollTimer = setTimeout(() => {
@@ -645,9 +682,9 @@ $('generate').addEventListener('click', () => action(async () => {
   if (!requirement) throw new Error('请填写新任务需求。');
   if (!demoGeneration && !state.environment.model.configured) throw new Error('当前模型未配置，请先在设置中保存连接；测试流程可明确启用演示规格。');
   const pid = state.project_id;
-  const spec = await api(projectPath() + '/specs', {
+  const spec = await api(projectPath() + '/analysis-tasks', {
     method: 'POST',
-    body: JSON.stringify({title, requirement, mode: demoGeneration ? 'sandbox' : 'real'}),
+    body: JSON.stringify({title, requirement, mode: demoGeneration ? 'sandbox' : 'real', request_id: crypto.randomUUID()}),
   });
   if (state.project_id === pid) {
     await refresh(pid, spec.id);
@@ -738,10 +775,13 @@ $('run-spec').addEventListener('click', () => action(async () => {
 
 async function addDocument(payload) {
   const pid = state.project_id;
-  const result = await api(projectPath() + '/documents', {method: 'POST', body: JSON.stringify(payload)});
+  const sid = selected?.id;
+  const attach = $('attach-current-task').checked && sid;
+  const result = await api(projectPath() + (attach ? '/specs/' + encodeURIComponent(sid) + '/updates' : '/documents'),
+    {method: 'POST', body: JSON.stringify(attach ? {...payload, mode: demoGeneration ? 'sandbox' : 'real'} : payload)});
   if (state.project_id === pid) {
     await refresh(pid);
-    notice(result.deduplicated ? '已识别相同内容，复用已有资料。' : '资料已添加。');
+    notice(attach ? '补充资料已保存，正在暂停原任务并分析差异；请在“资料变更”查看。' : result.deduplicated ? '已识别相同内容，复用已有资料。' : '资料已添加。');
   }
 }
 $('upload').addEventListener('click', () => action(async () => {
@@ -791,14 +831,14 @@ async function loadSkills() {
   const result = await api('/api/skills');
   fillList($('skill-list'), result.skills, skill => {
     const node = listRow();
-    node.append(el('strong', skill.name || skill.ref), el('small', skill.description));
-    node.append(el('code', skill.path + '\n' + skill.sha256));
+    node.append(el('strong', skill.display_name), el('small', skill.description));
     const actions = el('div', undefined, 'row-actions');
     actions.append(makeButton('只读查看', async () => {
       const parts = skill.ref.replace(/^skill:\/\//, '').split(/[/:]/).filter(Boolean);
       if (parts.length !== 2) throw new Error('Skill 引用格式无法识别：' + skill.ref);
       const view = await api('/api/skills/' + parts.map(encodeURIComponent).join('/'));
-      modal(view.ref, [el('code', view.path + '\n' + view.sha256), el('pre', view.content)]);
+      const body = view.content.replace(/^---[\s\S]*?---\s*/, '');
+      modal(skill.display_name, [el('p', skill.description), showDocument(body, true)]);
     }));
     node.append(actions);
     return node;
@@ -865,6 +905,7 @@ $('start-runtime').addEventListener('click', () => action(async () => {
   await api(projectPath() + '/specs/' + encodeURIComponent(sid) + '/runtime-runs', {method: 'POST', body: '{}'});
   if (state.project_id === pid && selected?.id === sid) await refresh(pid, sid);
 }, $('start-runtime')));
+$('task-start').addEventListener('click', () => $('start-runtime').click());
 $('cancel-runtime').addEventListener('click', () => action(async () => {
   const pid = state.project_id, sid = selected?.id, run = state.runtime_activity[sid];
   await api(projectPath() + '/runtime-runs/' + encodeURIComponent(run.id) + '/cancel', {method: 'POST', body: '{}'});
@@ -940,7 +981,6 @@ document.addEventListener('keydown', event => {
   }
 });
 document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
-  if (!allowLeave()) return;
   setPage(button.dataset.page);
   closeDrawer();
   if (button.dataset.page === 'skills') action(loadSkills);
@@ -988,6 +1028,64 @@ $('artifacts').addEventListener('click', () => {
   action(openDeliverables, $('artifacts'));
 });
 
+function restoreAuxiliary(focus = true) {
+  const page = auxiliaryPage;
+  if (!page) return;
+  auxiliaryPage = null;
+  $(page).hidden = true;
+  auxiliaryHomes.get(page).after($(page));
+  if (focus) auxiliaryTrigger?.focus();
+}
+function closeAuxiliary(focus = true) {
+  restoreAuxiliary(focus);
+  if ($('auxiliary-modal').open) $('auxiliary-modal').close();
+}
+$('auxiliary-modal').addEventListener('close', () => {
+  // close事件异步到达；旧弹层的事件不得回收刚重新打开的新内容。
+  if (!$('auxiliary-modal').open) restoreAuxiliary();
+});
+for (const [id, command] of [['task-pause', 'pause'], ['task-resume', 'resume'], ['task-cancel', 'cancel']]) {
+  $(id).addEventListener('click', () => action(async () => {
+    const pid = state.project_id, sid = selected.id;
+    const run = execution.runs.find(item => ['runtime', 'analysis'].includes(item.mode));
+    if (!run) throw new Error('尚无可控制的运行。');
+    await api(projectPath() + '/runtime-runs/' + encodeURIComponent(run.id) + '/' + command, {method: 'POST', body: '{}'});
+    await refresh(pid, sid);
+  }, $(id)));
+}
+$('task-supplement').addEventListener('click', () => {
+  $('attach-current-task').checked = true;
+  setPage('documents');
+});
+$('task-updates').addEventListener('click', () => action(openTaskUpdates, $('task-updates')));
+async function openTaskUpdates() {
+  const pid = state.project_id, sid = selected.id;
+  const endpoint = projectPath() + '/specs/' + encodeURIComponent(sid) + '/updates';
+  const result = await api(endpoint);
+  const nodes = result.updates.map(item => {
+    const row = el('article', undefined, 'panel');
+    const names = {waiting_pause: '等待暂停', analyzing: '差异分析中', waiting_confirmation: '等待审阅新草稿',
+      applied: '新需求已批准', dismissed: '已放弃', failed: '分析失败', interrupted: '分析中断，可重试'};
+    row.append(el('h3', item.document.name + ' · v' + item.document.version), el('p', names[item.status] || item.status));
+    if (item.reason) row.append(el('p', item.reason));
+    if (item.report) row.append(showDocument(item.report, true));
+    if (item.new_spec_id) row.append(makeButton('查看新分析任务', async () => {
+      $('modal').close(); if ($('auxiliary-modal').open) $('auxiliary-modal').close();
+      await refresh(pid, item.new_spec_id); setView('spec');
+    }));
+    if (['failed', 'interrupted', 'waiting_pause', 'analyzing'].includes(item.status)) row.append(makeButton('重试 / 对账', async () => {
+      await api(endpoint + '/' + item.id + '/retry', {method: 'POST', body: '{}'});
+      $('modal').close(); await refresh(pid, sid); await openTaskUpdates();
+    }));
+    if (!['applied', 'dismissed'].includes(item.status)) row.append(makeButton('放弃此批次', async () => {
+      await api(endpoint + '/' + item.id + '/dismiss', {method: 'POST', body: '{}'});
+      $('modal').close(); await refresh(pid, sid);
+    }));
+    return row;
+  });
+  modal('当前任务的补充资料与差异', nodes.length ? nodes : [el('p', '尚无补充资料。点击“补充资料”上传到当前任务。')]);
+}
+
 let documentEpoch = 0;
 $('modal').addEventListener('close', () => { documentEpoch++; });
 function showDocument(content, markdown) {
@@ -1021,7 +1119,8 @@ async function openDeliverables() {
   const layout = el('div', undefined, 'document-layout'); layout.append(list, preview);
   const save = el('button', '下载当前文档'); save.disabled = true;
   const bundle = el('button', '下载全部产物');
-  modal('任务产物文档', [layout], [save, bundle]);
+  const versions = makeButton('Git 版本与上传', openPublications);
+  modal('任务产物文档', [layout], [save, bundle, versions]);
   $('modal').classList.add('document-modal');
   const epoch = ++documentEpoch;
   const current = () => epoch === documentEpoch && $('modal').open && state.project_id === pid && selected?.id === sid;
@@ -1069,6 +1168,55 @@ async function openDeliverables() {
   });
   catalog.warnings.forEach(message => list.append(el('p', message, 'muted')));
   await load('overview', overview);
+}
+
+async function openPublications() {
+  const pid = state.project_id, sid = selected.id;
+  const endpoint = projectPath() + '/specs/' + encodeURIComponent(sid) + '/publications';
+  const result = await api(endpoint);
+  const list = el('div', undefined, 'list');
+  const names = {frozen: '已冻结', local_committed: '已本地提交', pending_upload: '已本地提交，待上传',
+    upload_failed: '上传未确认，可重试', remote_confirmed: '远端分支与标签已确认'};
+  result.publications.forEach(item => {
+    const row = el('article', undefined, 'panel');
+    row.append(el('h3', item.version), el('p', names[item.status] || item.status),
+      el('small', '来源代码：' + item.manifest.source_code_commit),
+      el('small', '发布提交：' + (item.commit || '尚未生成')),
+      el('small', 'Git 分支：' + item.branch), el('small', '标签：' + item.tag),
+      el('p', '验证状态：未做最终人工验收；快照不等于业务实现完成。', 'muted'));
+    if (item.error) row.append(el('p', item.error, 'error'));
+    row.append(makeButton('查看版本索引', async () => {
+      const doc = await api(endpoint + '/' + item.version + '/document?path=version-index');
+      modal('产物版本索引', [showDocument(doc.content, true)],
+        [makeButton('返回版本列表', openPublications), makeButton('下载索引', () => downloadDocument(doc))]);
+    }));
+    row.append(makeButton('查看版本清单', async () => {
+      const doc = await api(endpoint + '/' + item.version + '/document?path=manifest.json');
+      modal('版本清单 · ' + item.version, [showDocument(doc.content, false)],
+        [makeButton('返回版本列表', openPublications), makeButton('下载清单', () => downloadDocument(doc))]);
+    }));
+    const select = el('select'); select.setAttribute('aria-label', '选择版本产物');
+    item.manifest.files.forEach(file => { const option = el('option', file.path); option.value = file.path; select.append(option); });
+    row.append(select, makeButton('查看冻结产物', async () => {
+      const doc = await api(endpoint + '/' + item.version + '/document?path=' + encodeURIComponent(select.value));
+      modal(doc.name + ' · ' + item.version, [showDocument(doc.content, doc.name.endsWith('.md'))],
+        [makeButton('返回版本列表', openPublications), makeButton('下载产物', () => downloadDocument(doc))]);
+    }));
+    row.append(makeButton(item.status === 'remote_confirmed' ? '重新核验远端' : '上传 / 重试此版本', async () => {
+      const answer = await api(endpoint + '/' + item.version + '/sync', {method: 'POST', body: '{}'});
+      await openPublications();
+      notice(answer.status === 'remote_confirmed' ? '远端分支与标签已确认。' : '上传未确认，本地版本保留，可重试。', answer.status !== 'remote_confirmed');
+    }));
+    list.append(row);
+  });
+  if (!result.publications.length) list.append(el('p', '尚无冻结交付版本。先在设置登记当前项目仓库，再生成版本。'));
+  const create = makeButton('冻结产物并本地提交', async () => {
+    await api(endpoint, {method: 'POST', body: '{}'});
+    await openPublications();
+  }, true);
+  create.disabled = !state.repository || !!state.runtime_activity?.[sid];
+  modal('Git 产物版本', [el('p', '产物发布到当前项目仓库的专用交付分支；源分支保持不变。运行数据、凭据和原始资料不上传。'), list],
+    [create, makeButton('返回当前产物', openDeliverables)]);
 }
 
 window.refresh = refresh;

@@ -46,6 +46,14 @@ class SpecInput(Input):
     mode: str = 'sandbox'
 
 
+class AnalysisInput(SpecInput):
+    request_id: str = Field(min_length=1, max_length=120)
+
+
+class SupplementInput(DocumentInput):
+    mode: str = 'real'
+
+
 class SpecEdit(Input):
     content: str = Field(min_length=1, max_length=200000)
     revision: int = Field(ge=1)
@@ -197,6 +205,10 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     def create_spec(project_id: str, body: SpecInput):
         return service.generate_spec(project_id, body.title, body.requirement, body.mode)
 
+    @app.post('/api/projects/{project_id}/analysis-tasks')
+    def analyze_task(project_id: str, body: AnalysisInput):
+        return service.start_analysis(project_id, body.title, body.requirement, body.mode, body.request_id)
+
     @app.post('/api/projects/{project_id}/repository')
     def register_repository(project_id: str, body: RepositoryInput):
         from .execution_preparation import ExecutionPreparation
@@ -219,6 +231,53 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     def cancel_runtime(project_id: str, run_id: str):
         return service.runtime().cancel(project_id, run_id)
 
+    @app.post('/api/projects/{project_id}/runtime-runs/{run_id}/pause')
+    def pause_runtime(project_id: str, run_id: str):
+        return service.runtime().pause(project_id, run_id)
+
+    @app.post('/api/projects/{project_id}/runtime-runs/{run_id}/resume')
+    def resume_runtime(project_id: str, run_id: str):
+        return service.runtime().resume(project_id, run_id)
+
+    @app.get('/api/projects/{project_id}/specs/{spec_id}/updates')
+    def task_updates(project_id: str, spec_id: str):
+        return {'updates': service.updates().list(project_id, spec_id)}
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/updates')
+    def supplement_task(project_id: str, spec_id: str, body: SupplementInput):
+        if (body.content is None) == (body.data_base64 is None):
+            raise ValueError('请提交文本或文件内容。')
+        raw = body.content.encode('utf-8') if body.content is not None else base64.b64decode(body.data_base64, validate=True)
+        return service.updates().submit(project_id, spec_id, body.name, raw, body.mode)
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/updates/{update_id}/retry')
+    def retry_update(project_id: str, spec_id: str, update_id: str):
+        return service.updates().retry(project_id, spec_id, update_id)
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/updates/{update_id}/dismiss')
+    def dismiss_update(project_id: str, spec_id: str, update_id: str):
+        return service.updates().dismiss(project_id, spec_id, update_id)
+
+    def publications():
+        from .publications import PublicationService
+        return PublicationService(store)
+
+    @app.get('/api/projects/{project_id}/specs/{spec_id}/publications')
+    def list_publications(project_id: str, spec_id: str):
+        return {'publications': publications().list(project_id, spec_id)}
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/publications')
+    def publish(project_id: str, spec_id: str):
+        return publications().publish(project_id, spec_id)
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/publications/{version}/sync')
+    def sync_publication(project_id: str, spec_id: str, version: str):
+        return publications().sync(project_id, spec_id, version)
+
+    @app.get('/api/projects/{project_id}/specs/{spec_id}/publications/{version}/document')
+    def publication_document(project_id: str, spec_id: str, version: str, path: str):
+        return publications().document(project_id, spec_id, version, path)
+
     @app.get('/api/projects/{project_id}/specs/{spec_id}/execution')
     def execution(project_id: str, spec_id: str):
         return service.execution(project_id, spec_id)
@@ -237,7 +296,9 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
 
     @app.post('/api/projects/{project_id}/specs/{spec_id}/approve')
     def approve_spec(project_id: str, spec_id: str, body: Approval):
-        return store.approve_spec(project_id, spec_id, body.sha256, body.revision, body.approver)
+        value = store.approve_spec(project_id, spec_id, body.sha256, body.revision, body.approver)
+        service.updates().approved(project_id, spec_id)
+        return value
 
     @app.post('/api/projects/{project_id}/specs/{spec_id}/runs')
     def run_spec(project_id: str, spec_id: str, body: RunInput):

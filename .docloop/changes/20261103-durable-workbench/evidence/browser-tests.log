@@ -1,0 +1,8 @@
+test_control_toolbar_does_not_overlap_active_view (test_workbench_browser.WorkbenchBrowserTests.test_control_toolbar_does_not_overlap_active_view) ... ok
+test_durable_supplement_and_publication_versions (test_workbench_browser.WorkbenchBrowserTests.test_durable_supplement_and_publication_versions) ... ok
+test_full_browser_flow_layout_and_refresh (test_workbench_browser.WorkbenchBrowserTests.test_full_browser_flow_layout_and_refresh) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 46.712s
+
+OK

@@ -1,0 +1,204 @@
+{
+  "version": "docloop-workbench-20261103",
+  "commit_ref": "refs/tags/docloop-workbench-20261103",
+  "source_baseline": "b22269a62e2c6b02e71d15cd5dacb87fcaf6a4c1",
+  "verification": "129 backend tests (1 skipped), 3 browser tests, doctor passed",
+  "files": [
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/checkList.md",
+      "size": 1337,
+      "sha256": "35c1417f1fd625b4d2a109775cb08628abc280faf77c216288ffb1e9deb3cbee"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/decisions.md",
+      "size": 1113,
+      "sha256": "290c2dfcc992500d3ab4c107537efbf16a336ea206038d49a9ab82156277abdf"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence.yaml",
+      "size": 2715,
+      "sha256": "bc90c59f3159a76c0b80065cfffcf1eca0d5601827b3fedfc7d809d82f67d57e"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/backend-tests.log",
+      "size": 18829,
+      "sha256": "d0ce96e8f11cfbb9633216c188c40fa0a633fbeb60a5a25b0850985a431a1c80"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/browser-result.json",
+      "size": 395,
+      "sha256": "16fa5c0b28d426ef9b872417877ba732552b7060a7455a2331935fef035cfd47"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/browser-tests.log",
+      "size": 543,
+      "sha256": "66752969b3fbb29a36544ab95e0d9307b831c6358dc7675280603eb2a21bd605"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/doctor.json",
+      "size": 1679,
+      "sha256": "9df9f37c4f5d6c69aa64a7927008bc6c1cbbeb57a9a607b20d928ce65a4ef5a4"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/publication-confirmed.png",
+      "size": 175925,
+      "sha256": "a2bef735fe2764b677a6acdbac57d063284e95562569db799e2bdc8cd7b0d1a8"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/supplement-difference.png",
+      "size": 171898,
+      "sha256": "32c4edf4e8fbace9027c0cd84a6c4dacb77f8256f67858a2358587a55d603e5e"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/workbench-1366.png",
+      "size": 120744,
+      "sha256": "d16052af33c2dcef82e8a601f60451848805b19ecbbec5cb9a49df9e4cbfd61a"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/workbench-1920.png",
+      "size": 125016,
+      "sha256": "9df7cc7b6c71440b67c190a270ea420664c566077feb0065a90f4b883ea999b0"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/evidence/workbench-390.png",
+      "size": 72233,
+      "sha256": "941bec995eae46624930ea677565155a5fb965bb2f876acef1614a838560f2f4"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/execution-log.md",
+      "size": 1193,
+      "sha256": "2d8f1bae9b135ea671a921187bc99a5046a9259d9d2ea44e24a3e3e8bc53e142"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/oracle-add-request.sql",
+      "size": 377,
+      "sha256": "b8431d5af047a3156323b6f4e0a2c6bd8dd5dd7f531f18538a93afa100b6d2fc"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/plan.md",
+      "size": 2222,
+      "sha256": "5a3df11377a913d66b12ac83a1a5164c04b76829c5c5d2bf9fb40c0f0ba5dfad"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/review.yaml",
+      "size": 2008,
+      "sha256": "48623c9afcbedbfaa8eae0dbbaa93f529ba1d65e877dbdcd2c1096ad27749418"
+    },
+    {
+      "path": ".docloop/changes/20261103-durable-workbench/spec.md",
+      "size": 1270,
+      "sha256": "43934ce96c974b7d504b50e510c67b4e436a2d10bea063aa692c67857028b404"
+    },
+    {
+      "path": ".docloop/docs/workbench-durable-task-proposal.md",
+      "size": 15341,
+      "sha256": "13ea608bfc04317c2699e0153eab72f9fb7062420912ef4e159a490068597033"
+    },
+    {
+      "path": "README.md",
+      "size": 16139,
+      "sha256": "a606b8579b42df65c6c5b08168b2a08cd0c45c0b1b045baab72fd6e6d8e5d08b"
+    },
+    {
+      "path": "src/docloop/deliverables.py",
+      "size": 8424,
+      "sha256": "1f9a6caadf07bea75efc10d09a9339aac434b0f4f2eb015a72e2b17717957e22"
+    },
+    {
+      "path": "src/docloop/durable_io.py",
+      "size": 626,
+      "sha256": "8484aaf968684f2718f0a39aca02b0d44793b3bfd22cb91868f19ffc0e3e9f2c"
+    },
+    {
+      "path": "src/docloop/managed_runs.py",
+      "size": 18553,
+      "sha256": "af10da3a8d32d654946f844c93cc1865893b339f83247f25599fad78796a4587"
+    },
+    {
+      "path": "src/docloop/publications.py",
+      "size": 18085,
+      "sha256": "cfa35d72a28d0c5c82929b6c0c986c6d88c341724c875faf8c84b39826c62023"
+    },
+    {
+      "path": "src/docloop/skill_labels.py",
+      "size": 3072,
+      "sha256": "0b02d5079fbbf33f93f1f035619e12637d8f0b3136ad7364e3550efcd5b4b1a7"
+    },
+    {
+      "path": "src/docloop/task_updates.py",
+      "size": 11990,
+      "sha256": "c9dcc9d8169d1dd0af1cb03df549ab7f6769be1102d7ec85b254adb5f291a62a"
+    },
+    {
+      "path": "src/docloop/workbench.py",
+      "size": 19266,
+      "sha256": "ad1711b848596bff88ed9d34bdd827d929ca729e35be85c614d11a34ded72d3f"
+    },
+    {
+      "path": "src/docloop/workbench_service.py",
+      "size": 21924,
+      "sha256": "97aaca0079cfdce711acfb0a450c1a0781e76431a0a1d4802948e8a8920e08bf"
+    },
+    {
+      "path": "src/docloop/workbench_static/app.css",
+      "size": 37984,
+      "sha256": "ee1ec38a56e56c8855d3a2d491204d71d8fac733ddee130d327c76aa58c5398d"
+    },
+    {
+      "path": "src/docloop/workbench_static/app.js",
+      "size": 55458,
+      "sha256": "ab608cd7a4b9eb2390496f363076aeed9b634fa809f4882b2aaadaecc136d175"
+    },
+    {
+      "path": "src/docloop/workbench_static/index.html",
+      "size": 17831,
+      "sha256": "bb67779d8ae82a1726aecae7b4ab9d5eb786e8b2760a3eb324edda715195dc37"
+    },
+    {
+      "path": "src/docloop/workbench_store.py",
+      "size": 28431,
+      "sha256": "450ce01de7d3abb976c35d0bb3562fcb246016cf089124e6a17377d0a55c547f"
+    },
+    {
+      "path": "tests/acceptance/test_workbench_browser.py",
+      "size": 30403,
+      "sha256": "0ea33bb70081b7cc753ebabe34bca5dc7592200a76ba067a700c9bb514c641f2"
+    },
+    {
+      "path": "tests/test_background_analysis.py",
+      "size": 4656,
+      "sha256": "372532956cc9909e907d77e317b310336422d613202ff7e299ed27c206720a61"
+    },
+    {
+      "path": "tests/test_durable_runs.py",
+      "size": 6374,
+      "sha256": "e9e38be230f7182cfca22e5e075150b98e0e4be47c777fc5d6c67e761afa57cc"
+    },
+    {
+      "path": "tests/test_durable_workbench_api.py",
+      "size": 3003,
+      "sha256": "eb891554df1a5174b4c19784b1bda2398f7019b8052190e4fed1109f0831e63e"
+    },
+    {
+      "path": "tests/test_managed_runs.py",
+      "size": 6507,
+      "sha256": "0c6767b06f49571a05e2cf30b8d3c2daea65356968df63f080281ddbb3d3f141"
+    },
+    {
+      "path": "tests/test_publications.py",
+      "size": 13380,
+      "sha256": "c9b4d521f2a8f1fd76f809aa9811cc83512b1ba4a7c30f1ae89da84c4ec77eac"
+    },
+    {
+      "path": "tests/test_task_updates.py",
+      "size": 2921,
+      "sha256": "6ef769c52a3aabfa8e9050aa6aac85428a52142e372bda233c1a1d46ad4e4a64"
+    },
+    {
+      "path": "文档/产物版本索引.md",
+      "size": 1698,
+      "sha256": "5737403a21992ff83d174d74c1e3c13065892fc7da22d69f0f46504d809b2357"
+    }
+  ],
+  "note": "Hashes cover staged Git blob bytes; manifest excludes itself. Release commit is resolved from immutable tag."
+}

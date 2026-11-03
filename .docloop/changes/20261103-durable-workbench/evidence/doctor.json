@@ -1,0 +1,70 @@
+{
+  "status": "passed",
+  "profile": "docloop-platform",
+  "agents": [
+    "implement-agent",
+    "orchestrator-agent",
+    "review-agent",
+    "spec-agent",
+    "verify-agent"
+  ],
+  "skills": [
+    "api-contract",
+    "audit-recorder",
+    "backend-code-generator",
+    "checklist-create",
+    "component-generator",
+    "document-parser",
+    "frontend-design",
+    "frontend-quality-check",
+    "plan-create",
+    "project-archiving",
+    "project-bootstrap",
+    "recovery-diagnosis",
+    "security-check",
+    "spec-create",
+    "test-runner"
+  ],
+  "active_rules": [
+    "code-standard",
+    "verification-standard"
+  ],
+  "superpowers": {
+    "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+    "enabled": true,
+    "installed": true,
+    "integrity_verified": true,
+    "runtime_loaded": false,
+    "upstream_matches": true,
+    "integrity_policy": "editable",
+    "changes": {
+      "modified": [],
+      "missing": [],
+      "added": []
+    },
+    "install_path": ".docloop/superpowers",
+    "file_count": 231,
+    "skills": [
+      "brainstorming",
+      "diagnosing-superpowers",
+      "dispatching-parallel-agents",
+      "executing-plans",
+      "finishing-a-development-branch",
+      "receiving-code-review",
+      "requesting-code-review",
+      "subagent-driven-development",
+      "systematic-debugging",
+      "test-driven-development",
+      "using-git-worktrees",
+      "using-superpowers",
+      "verification-before-completion",
+      "writing-plans",
+      "writing-skills"
+    ],
+    "skill_count": 15
+  },
+  "mode": "framework",
+  "limitations": [
+    "Configuration validation does not prove model compliance or live business execution."
+  ]
+}

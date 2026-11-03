@@ -59,6 +59,10 @@ events = Table('dl_event', metadata, Column('id', String(32), primary_key=True),
     Column('project_id', String(32), ForeignKey('dl_project.id'), nullable=False, index=True),
     Column('kind', String(60), nullable=False), Column('payload_json', UnicodeText, nullable=False),
     Column('created_at', String(40), nullable=False))
+requests = Table('dl_request', metadata, Column('id', String(64), primary_key=True),
+    Column('project_id', String(32), ForeignKey('dl_project.id'), nullable=False),
+    Column('spec_id', String(32), ForeignKey('dl_spec.id'), nullable=False),
+    Column('payload_hash', String(64), nullable=False))
 
 
 class WorkbenchStore:
@@ -226,6 +230,44 @@ class WorkbenchStore:
             self._event(connection, project_id, 'spec.created', {'spec_id': row['id'], 'mode': mode, 'sha256': row['sha256']})
         return self.spec(project_id, row['id'])
 
+    def analysis_request(self, project_id, key, title, requirement, mode):
+        """创建任务身份与请求去重记录在同一事务内，刷新不会创建第二个任务。"""
+        if (not key or len(key) > 120 or not title.strip() or len(title) > 200
+                or not requirement.strip() or len(requirement) > 12000 or mode not in {'real', 'sandbox'}):
+            raise ValueError('任务标题、需求、模式或请求标识无效。')
+        identity = digest((project_id + ':' + key).encode())
+        payload_hash = digest(encoded([title, requirement, mode]).encode())
+        with self.engine.begin() as connection:
+            self._project(connection, project_id)
+            old = connection.execute(select(requests).where(requests.c.id == identity)).mappings().first()
+            if old:
+                if old['payload_hash'] != payload_hash:
+                    raise Conflict('同一请求标识不能用于不同需求。')
+                sid = old['spec_id']
+            else:
+                sid = uuid4().hex
+                content = '# ' + title.strip() + '\n\n分析正在进行，尚未生成可审批规格。\n\nAC-001：等待需求分析。'
+                connection.execute(insert(specs).values(id=sid, project_id=project_id, title=title.strip(),
+                    content=content, sha256=digest(content.encode()), revision=1, status='draft',
+                    generation_mode=mode, references_json='[]', skill_sources_json='[]', created_at=now()))
+                connection.execute(insert(requests).values(id=identity, project_id=project_id,
+                    spec_id=sid, payload_hash=payload_hash))
+                self._event(connection, project_id, 'analysis.requested', {'spec_id': sid})
+        return self.spec(project_id, sid)
+
+    def complete_analysis(self, project_id, spec_id, content, references, skills, revision):
+        if not re.search(r'\bAC-\d+\b', content) or len(content) > 200000:
+            raise ValueError('分析结果缺少验收编号或过长。')
+        with self.engine.begin() as connection:
+            changed = connection.execute(update(specs).where(specs.c.id == spec_id,
+                specs.c.project_id == project_id, specs.c.status == 'draft', specs.c.revision == revision).values(
+                content=content, sha256=digest(content.encode()), revision=revision + 1,
+                references_json=encoded(references), skill_sources_json=encoded(skills)))
+            if changed.rowcount != 1:
+                raise Conflict('草稿已变化或审批，分析结果不会覆盖。')
+            self._event(connection, project_id, 'spec.created', {'spec_id': spec_id, 'background': True})
+        return self.spec(project_id, spec_id)
+
     def spec(self, project_id, spec_id):
         with self.engine.connect() as connection:
             row = connection.execute(select(specs).where(specs.c.id == spec_id,
@@ -246,6 +288,7 @@ class WorkbenchStore:
         self.spec(project_id, spec_id)
         value_hash = digest(content.encode())
         with self.engine.begin() as connection:
+            self._analysis_finished(connection, project_id, spec_id)
             result = connection.execute(update(specs).where(specs.c.id == spec_id,
                 specs.c.project_id == project_id, specs.c.revision == revision, specs.c.status == 'draft').values(
                 content=content, sha256=value_hash, revision=revision + 1))
@@ -261,6 +304,7 @@ class WorkbenchStore:
         if spec['sha256'] != expected_hash:
             raise Conflict('Spec Hash已变化，请审阅当前版本后再审批。')
         with self.engine.begin() as connection:
+            self._analysis_finished(connection, project_id, spec_id)
             result = connection.execute(update(specs).where(specs.c.id == spec_id,
                 specs.c.project_id == project_id, specs.c.revision == revision,
                 specs.c.sha256 == expected_hash, specs.c.status == 'draft').values(
@@ -271,6 +315,17 @@ class WorkbenchStore:
             self._event(connection, project_id, 'spec.approved', {'spec_id': spec_id, 'sha256': expected_hash,
                         'revision': revision, 'approver': approver.strip()})
         return self.spec(project_id, spec_id)
+
+    @staticmethod
+    def _analysis_finished(connection, project_id, spec_id):
+        requested = connection.execute(select(requests.c.id).where(requests.c.project_id == project_id,
+            requests.c.spec_id == spec_id)).first()
+        if not requested:
+            return
+        latest = connection.execute(select(runs.c.status).where(runs.c.project_id == project_id,
+            runs.c.spec_id == spec_id, runs.c.mode == 'analysis').order_by(runs.c.created_at.desc())).first()
+        if latest is None or latest[0] not in {'succeeded', 'cancelled'}:
+            raise Conflict('需求分析尚未完成，请继续分析或先取消后手动编辑。')
 
     def approved_bytes(self, project_id, spec_id):
         with self.engine.connect() as connection:
@@ -302,17 +357,25 @@ class WorkbenchStore:
         with self.engine.begin() as connection:
             pending = list(connection.execute(select(runs).where(runs.c.status == 'in_progress')).mappings())
             for row in pending:
-                result = {'status': 'blocked', 'mode': row['mode'], 'interrupted': True,
-                          'error': '上次服务退出时运行尚未结束。请审阅检查点与工作区后重新发起。',
+                resumable = row['mode'] in {'runtime', 'analysis'} and (self.root / 'runs' / row['id'] / 'run-input.json').is_file()
+                status = 'interrupted' if resumable else 'blocked'
+                previous = json.loads(row['result_json'])
+                if previous.get('control') == 'cancel' or previous.get('cancel_requested'):
+                    status = 'cancelled'
+                result = {**previous, 'status': status, 'mode': row['mode'], 'interrupted': True,
+                          'reason': '服务中断；可从保存步骤恢复。' if resumable else '检查点缺失，不能安全恢复。',
                           'real_business_acceptance': False}
                 connection.execute(update(runs).where(runs.c.id == row['id'],
-                    runs.c.status == 'in_progress').values(status='blocked', result_json=encoded(result)))
-                self._event(connection, row['project_id'], 'run.interrupted', {'run_id': row['id'], 'status': 'blocked', 'mode': row['mode']})
+                    runs.c.status == 'in_progress').values(status=status, result_json=encoded(result)))
+                self._event(connection, row['project_id'], 'run.interrupted', {'run_id': row['id'], 'status': status, 'mode': row['mode']})
 
     def start_run(self, project_id, spec_id, mode='demo'):
-        if mode not in {'demo', 'runtime'}:
+        if mode not in {'demo', 'runtime', 'analysis'}:
             raise ValueError('不支持的运行模式。')
-        self.approved_bytes(project_id, spec_id)
+        if mode != 'analysis':
+            self.approved_bytes(project_id, spec_id)
+        else:
+            self.spec(project_id, spec_id)
         row = {'id': uuid4().hex, 'project_id': project_id, 'spec_id': spec_id, 'status': 'in_progress',
                'mode': mode, 'result_json': '{}', 'created_at': now()}
         with self.engine.begin() as connection:
@@ -352,6 +415,28 @@ class WorkbenchStore:
             if updated.rowcount:
                 self._event(connection, project_id, 'run.cancel_requested',
                     {'run_id': run_id, 'mode': 'runtime', 'status': 'cancel_requested'})
+
+    def transition_run(self, project_id, run_id, expected, status, details):
+        """状态比较更新，避免重复控制或迟到结果覆盖新的决定。"""
+        row = self.run(project_id, run_id)
+        result = {**row['result'], **details, 'status': status}
+        with self.engine.begin() as connection:
+            changed = connection.execute(update(runs).where(runs.c.id == run_id,
+                runs.c.project_id == project_id, runs.c.status.in_(expected),
+                runs.c.result_json == encoded(row['result'])).values(status=status, result_json=encoded(result)))
+            if changed.rowcount != 1:
+                raise Conflict('运行状态已变化，请刷新。')
+            self._event(connection, project_id, 'run.' + status,
+                {'run_id': run_id, 'spec_id': row['spec_id'], 'status': status, 'mode': row['mode']})
+        return self.run(project_id, run_id)
+
+    def document_content(self, project_id, document_id):
+        with self.engine.connect() as connection:
+            row = connection.execute(select(documents).where(documents.c.id == document_id,
+                documents.c.project_id == project_id)).mappings().first()
+        if row is None:
+            raise NotFound('该项目中没有此资料版本。')
+        return dict(row)
 
     def pending_runs(self, mode):
         with self.engine.connect() as connection:

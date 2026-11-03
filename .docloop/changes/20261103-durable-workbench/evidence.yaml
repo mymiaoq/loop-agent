@@ -1,0 +1,52 @@
+verification:
+  change_id: 20261103-durable-workbench
+  status: passed
+  mode: controlled-tests-and-real-browser
+  checks:
+    - id: V-001
+      requirement_ids: [AC-002, AC-003, AC-004, AC-005, AC-006]
+      test_case_ids: [TC-002, TC-003, TC-004, TC-005, TC-006, TC-007, TC-008]
+      type: backend
+      command_or_method: uv run python -m unittest discover -s tests -v
+      result: passed
+      observed: 129 tests in 208.994s; OK; skipped=1 (Windows symlink privilege unavailable)
+      evidence: evidence/backend-tests.log
+    - id: V-002
+      requirement_ids: [AC-001, AC-002, AC-003, AC-005, AC-006]
+      test_case_ids: [TC-001, TC-002, TC-006, TC-007, TC-008]
+      type: browser
+      command_or_method: uv run python -m unittest discover -s tests/acceptance -v
+      result: passed
+      observed: 3 tests in 46.712s; OK; 1920/1366/390; console_errors=[]; supplementary document and Git publication/index flows passed
+      evidence: evidence/browser-tests.log
+    - id: V-003
+      requirement_ids: [AC-006]
+      test_case_ids: [TC-008]
+      type: configuration
+      command_or_method: uv run docloop doctor
+      result: passed
+      observed: docloop-platform; upstream_matches=true; 15 professional skills and 15 Superpowers skills; modified/missing/added=[]
+      evidence: evidence/doctor.json
+    - id: V-004
+      requirement_ids: [AC-001, AC-003, AC-006]
+      test_case_ids: [TC-001, TC-008]
+      type: static
+      command_or_method: node --check src/docloop/workbench_static/app.js; uv run python -m compileall -q src/docloop
+      result: passed
+      observed: Both commands exited 0; no frontend build pipeline or dependency added
+      evidence: execution-log.md
+    - id: V-005
+      requirement_ids: [AC-002, AC-004, AC-005]
+      test_case_ids: [TC-003, TC-005, TC-007]
+      type: review
+      command_or_method: independent read-only review and temporary-store reproductions, followed by regression fixes
+      result: passed
+      observed: Reviewer confirmed final CRLF/attribute/checkpoint reconciliation fix; independent publication suite 12/12 passed; no remaining important issue in reviewed scope
+      evidence: review.yaml
+  failures: []
+  remaining_risks:
+    - Windows symlink privilege test skipped; other path-boundary tests passed
+    - Forced process-tree termination recovery tested; physical power loss and damaged storage not tested
+    - Real model semantic quality and live Oracle migration not tested in this change
+    - Runtime remains planning/worktree preparation; real business coding execution gate remains disabled
+    - Supplement analysis input currently limited to 12000 characters including original requirement and report; one batch at a time
