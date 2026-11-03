@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from docloop.project import inspect_project
+from docloop.project import REQUIRED_SKILLS, inspect_project, read_yaml, route_skills
 from docloop.governance import GateError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,19 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(len(report['skills']), 15)
         self.assertNotIn('ui-standard', report['active_rules'])
         self.assertNotIn('api-standard', report['active_rules'])
+
+    def test_all_required_docloop_skills_are_routed_and_enterprise_is_gated(self):
+        config = read_yaml(ROOT / '.docloop/project.yaml')
+        refs = []
+        for selected in config['skill_runtime']['stages'].values():
+            refs.extend(ref for ref in selected if not ref.startswith('superpowers:'))
+        for selected in config['routing'].values():
+            refs.extend(ref for ref in selected if not ref.startswith('superpowers:'))
+        names = {ref.split(':', 1)[1] if ':' in ref else ref for ref in refs}
+        self.assertEqual(names, REQUIRED_SKILLS)
+        self.assertTrue(route_skills(ROOT, ['workflow']))
+        with self.assertRaises(GateError):
+            route_skills(ROOT, ['ui'])
 
     def test_cli_demo_runs_in_separate_process_and_invalid_hash_exits_nonzero(self):
         with tempfile.TemporaryDirectory() as tmp:

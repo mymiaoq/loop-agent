@@ -76,7 +76,7 @@ class LocalSkillTests(unittest.TestCase):
         self.assertEqual(packet['role'], 'spec-agent')
         self.assertIn('LOCAL-PROMPT-MARKER', packet['messages'][0]['content'])
         self.assertEqual([x['ref'] for x in packet['skills']],
-                         ['superpowers:using-superpowers', 'docloop:spec-create', 'superpowers:brainstorming'])
+                         ['superpowers:using-superpowers', 'docloop:spec-create', 'docloop:document-parser', 'superpowers:brainstorming'])
         self.assertEqual([x['name'] for x in packet['rules']], ['code-standard'])
         self.assertFalse(packet['model_invoked'])
 

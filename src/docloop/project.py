@@ -13,6 +13,32 @@ REQUIRED_SKILLS = {'document-parser', 'spec-create', 'plan-create', 'checklist-c
                    'backend-code-generator', 'frontend-design', 'frontend-quality-check', 'security-check'}
 SKILL_SECTIONS = ('用途', '触发条件', '输入 Schema', '允许工具', '执行步骤',
                   '输出 Schema', '失败处理', '完成条件', '禁止行为')
+ENTERPRISE_SKILLS = {'component-generator', 'api-contract', 'backend-code-generator',
+                     'frontend-design', 'frontend-quality-check', 'security-check'}
+
+
+def route_skills(root: Path, domains=None):
+    """按 project.yaml routing 选择领域 Skill；企业 Skill 只能由企业 Profile 启用。"""
+    root = Path(root).resolve()
+    config = read_yaml(root / '.docloop/project.yaml')
+    routing = config.get('routing', {})
+    if not isinstance(routing, dict):
+        raise GateError('routing must be an object')
+    selected = []
+    for domain in domains or ['workflow']:
+        refs = routing.get(domain, [])
+        if not isinstance(refs, list) or any(not isinstance(ref, str) for ref in refs):
+            raise GateError(f'Invalid Skill route for domain: {domain}')
+        for ref in refs:
+            namespace, separator, name = ref.partition(':')
+            if not separator:
+                namespace, name = 'docloop', ref
+            if namespace not in {'docloop', 'superpowers'} or not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', name):
+                raise GateError(f'Invalid Skill reference: {ref}')
+            if namespace == 'docloop' and name in ENTERPRISE_SKILLS and config.get('profile') != 'enterprise-vue-java':
+                raise GateError(f'Enterprise Skill requires enterprise-vue-java Profile: {ref}')
+            selected.append(ref)
+    return list(dict.fromkeys(selected))
 
 
 def read_yaml(path: Path):

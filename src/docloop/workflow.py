@@ -17,7 +17,7 @@ from .contracts import transition, TaskContext
 from .evidence import validate_evidence, archive_change
 from .governance import GateError, Governance, write_json
 from .reliability import Blocked, Limits, Reliability, classify_error, fingerprint
-from .project import read_yaml, select_context
+from .project import read_yaml, route_skills, select_context
 from .execution_lock import run_lock
 from .skill_runtime import SkillRegistry
 
@@ -84,7 +84,7 @@ class Workflow:
         context = TaskContext(change_id)
         if self.project_config:
             _, _, context.rules = select_context(self.instruction_root, context.domains)
-            context.skills = self.project_config.get('routing', {}).get('workflow', [])
+            context.skills = route_skills(self.instruction_root, context.domains)
         context.validate()
         return self._invoke({'change_id': change_id, 'mode': mode, 'scenario': scenario,
                                   'status': 'draft', 'history': ['draft'], 'acceptance_ids': ids,
