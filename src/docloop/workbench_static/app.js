@@ -5,7 +5,15 @@ let state = null;
 let selected = null;
 let epoch = 0;
 let busy = 0;
+let generationChoice = null;
+try {
+  const remembered = sessionStorage.getItem('docloop:generation-mode');
+  if (['sandbox', 'real'].includes(remembered)) generationChoice = remembered;
+} catch {
+  generationChoice = null; // 浏览器禁用偏好存储时回退页面默认，模型配置仍由服务持久保存。
+}
 const drafts = new Map();
+const preparationResults = new Map();
 
 let execution = null;
 let executionEpoch = 0;
@@ -225,13 +233,25 @@ function renderSettings() {
   const model = state.environment.model || {};
   const real = $('generation-mode').querySelector('[value="real"]');
   real.disabled = !model.configured;
-  real.textContent = model.configured ? '真实模型生成' : '真实模型（未配置）';
-  if (!model.configured) $('generation-mode').value = 'sandbox';
+  real.textContent = '模型';
+  $('generation-mode').value = model.configured ? (generationChoice || 'real') : 'sandbox';
+  $('generation-mode').title = model.configured ? '选择需求规格的生成方式' : '当前模型未配置，可使用演示或到设置配置';
   $('base-url').value = model.base_url || '';
-  $('model').value = model.model || '';
+  $('model').value = model.model || 'gpt-6.1-sol';
+  $('active-model').value = model.model || 'gpt-6.1-sol';
+  const codex = model.provider === 'codex-cli';
+  $('model-api-fields').hidden = codex;
+  $('base-url').disabled = codex;
+  $('api-key').disabled = codex;
+  $('api-key').value = '';
+  $('api-key').placeholder = model.has_api_key ? '已保存，留空沿用' : '首次配置请输入API Key';
+  $('model-auth-note').textContent = codex ? '使用本机Codex登录，重启后保留选择；无需复制登录令牌。' : '密钥由当前Windows账户加密保存；留空保留已保存密钥。';
+  $('repository-path').value = state.repository?.path || '';
+  $('repository-binding').textContent = state.repository ? '基线 Commit · ' + state.repository.baseline_commit : '尚未登记仓库';
+  renderPreparation();
   const oracle = state.environment.oracle?.configured;
   $('storage-pill').textContent = oracle ? 'Oracle 关系存储' : 'SQLite 沙箱';
-  $('model-pill').textContent = model.configured ? '真实模型已配置' : '模型未配置';
+  $('model-pill').textContent = (model.label || '模型') + (model.configured ? ' · 已配置' : ' · 待配置');
   const info = $('environment-info');
   info.replaceChildren();
   [
@@ -367,17 +387,20 @@ function syncButtons() {
   $('new-project').disabled = busy > 0;
   $('new-task').disabled = busy > 0;
   document.querySelectorAll('.task-item').forEach(item => { item.disabled = busy > 0; });
-  ['spec-title', 'requirement', 'generation-mode'].forEach(id => { $(id).disabled = busy > 0; });
+  ['requirement', 'generation-mode', 'active-model', 'model'].forEach(id => { $(id).disabled = busy > 0; });
   $('spec-content').readOnly = busy > 0 || approved;
   $('artifacts').disabled = !execution?.artifacts?.length || busy > 0;
   $('copy-hash').disabled = !selected || busy > 0;
   ['upload', 'add-text', 'search', 'test-model'].forEach(id => { $(id).disabled = busy > 0; });
+  $('register-repository').disabled = busy > 0;
+  $('prepare-execution').disabled = busy > 0 || !state?.repository || selected?.status !== 'approved';
   ['record-filter', 'expand-all'].forEach(id => { $(id).disabled = !selected || busy > 0; });
   $('busy-status').hidden = busy === 0;
   $('main').setAttribute('aria-busy', String(busy > 0));
 }
 
 function renderTaskHeader() {
+  renderPreparation();
   const status = selected ? taskStatus(selected) : null;
   $('task-title').textContent = selected?.title || '请选择任务';
   $('task-title').title = selected?.title || '';
@@ -614,7 +637,7 @@ $('spec-content').addEventListener('input', () => {
 $('generate').addEventListener('click', () => action(async () => {
   if (!allowLeave()) return;
   const requirement = $('requirement').value.trim();
-  const title = $('spec-title').value.trim() || requirement.split('\n')[0].slice(0, 80);
+  const title = requirement.split('\n')[0].slice(0, 80);
   if (!requirement) throw new Error('请填写新任务需求。');
   const pid = state.project_id;
   const spec = await api(projectPath() + '/specs', {
@@ -623,7 +646,6 @@ $('generate').addEventListener('click', () => action(async () => {
   });
   if (state.project_id === pid) {
     await refresh(pid, spec.id);
-    $('spec-title').value = '';
     $('requirement').value = '';
     setPage('workspace');
     setView('spec');
@@ -790,7 +812,7 @@ $('model-form').addEventListener('submit', event => {
         }),
       });
       await refresh(state.project_id);
-      notice('配置已保存至服务会话内存，请测试连接。');
+      notice('模型配置已保存，重启后保留；可测试连接。');
     } finally {
       $('api-key').value = '';
     }
@@ -800,6 +822,34 @@ $('test-model').addEventListener('click', () => action(async () => {
   const result = await api('/api/settings/model/test', {method: 'POST', body: '{}'});
   notice(result.message || (result.ok ? '连接测试成功。' : '连接测试失败。'), !result.ok);
 }, $('test-model')));
+['active-model', 'model'].forEach(id => $(id).addEventListener('change', () => action(async () => {
+  try {
+    await api('/api/settings/model/select', {method: 'POST', body: JSON.stringify({model: $(id).value})});
+  } finally { await refresh(state.project_id); }
+}, $(id))));
+$('generation-mode').addEventListener('change', () => {
+  generationChoice = $('generation-mode').value;
+  try { sessionStorage.setItem('docloop:generation-mode', generationChoice); }
+  catch { notice('当前浏览器仅在此页面保留生成模式选择。'); }
+});
+$('register-repository').addEventListener('click', () => action(async () => {
+  const pid = state.project_id;
+  await api(projectPath() + '/repository', {method: 'POST', body: JSON.stringify({path: $('repository-path').value.trim()})});
+  if (state.project_id === pid) await refresh(pid);
+  notice('仓库与基线已登记，未修改源代码。');
+}, $('register-repository')));
+$('prepare-execution').addEventListener('click', () => action(async () => {
+  const pid = state.project_id, sid = selected.id;
+  const result = await api(projectPath() + '/specs/' + encodeURIComponent(sid) + '/prepare', {method: 'POST', body: '{}'});
+  if (state.project_id === pid && selected?.id === sid) {
+    preparationResults.set(pid + ':' + sid, result.reason + ' 工作区：' + result.worktree.path);
+    renderPreparation();
+  }
+}, $('prepare-execution')));
+function renderPreparation() {
+  $('preparation-status').textContent = preparationResults.get(state?.project_id + ':' + selected?.id) ||
+    '当前任务尚未准备工作区；准备仅创建隔离Worktree，不运行生成代码。';
+}
 window.addEventListener('beforeunload', event => {
   if (dirty()) {
     event.preventDefault();
@@ -902,7 +952,6 @@ $('new-task').addEventListener('click', () => {
   selected = null;
   execution = null;
   $('spec-content').value = '';
-  $('spec-title').value = '';
   $('requirement').value = '';
   updateUrl();
   renderSpec();

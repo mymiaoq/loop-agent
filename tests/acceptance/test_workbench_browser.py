@@ -24,6 +24,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         cls.log = cls.log_path.open('w', encoding='utf-8')
         cls.process = subprocess.Popen([sys.executable, '-m', 'docloop.workbench', '--root', str(ROOT),
             '--data-root', str(cls.data / 'data'), '--port', '0'], stdout=cls.log, stderr=subprocess.STDOUT,
+            env={**os.environ, 'CODEX_APP_RUNTIME_CLI_PATH': sys.executable},
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         for _ in range(150):
             content = cls.log_path.read_text(encoding='utf-8', errors='replace')
@@ -57,8 +58,34 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         page.goto(self.url)
+        def controlled_generation(route):
+            body = route.request.post_data_json
+            if route.request.method == 'POST' and body.get('mode') == 'real':
+                route.fulfill(status=400, json={'detail': 'Browser fixture does not invoke a real provider'})
+            else:
+                route.continue_()
+        page.route('**/api/projects/*/specs', controlled_generation)
         expect(page.locator('#generate')).to_be_enabled()
         expect(page.locator('#task-list')).to_be_visible()
+        session = page.request.get(self.url + '/api/state').json()
+        configured = page.request.post(self.url + '/api/settings/model',
+            headers={'X-DocLoop-Token': session['csrf_token']}, data={'model': 'gpt-6.1-sol'})
+        self.assertEqual(configured.status, 200)
+        page.locator('#active-model').select_option('deepseek-v4.1-flash')
+        expect(page.locator('#active-model')).to_be_enabled()
+        page.reload()
+        expect(page.locator('#active-model')).to_have_value('deepseek-v4.1-flash')
+        page.locator('[data-page="settings"]').click()
+        page.locator('#api-key').fill('browser-test-private-key')
+        page.get_by_role('button', name='保存模型配置').click()
+        expect(page.locator('#notice')).to_contain_text('模型配置已保存')
+        page.reload()
+        expect(page.locator('#active-model')).to_have_value('deepseek-v4.1-flash')
+        self.assertTrue(page.evaluate('window.docloopState.environment.model.has_api_key'))
+        self.assertEqual(page.locator('#api-key').input_value(), '')
+        page.locator('#active-model').select_option('gpt-6.1-sol')
+        expect(page.locator('#active-model')).to_be_enabled()
+        page.locator('#generation-mode').select_option('sandbox')
         def task_drawer():
             toggle = page.locator('#drawer-toggle')
             if toggle.is_visible() and toggle.get_attribute('aria-expanded') != 'true':
@@ -72,8 +99,9 @@ class WorkbenchBrowserTests(unittest.TestCase):
         page.locator('#add-text').click()
         expect(page.locator('#document-list')).to_contain_text('审批来源')
         page.locator('[data-page="workspace"]').click()
-        page.locator('#spec-title').fill('资料导入与审批')
-        page.locator('#requirement').fill('导入项目资料并审批Spec，保留来源与版本。')
+        self.assertEqual(page.locator('#spec-title').count(), 0)
+        expect(page.locator('#active-model option')).to_have_count(2)
+        page.locator('#requirement').fill('资料导入与审批\n导入项目资料并审批Spec，保留来源与版本。')
         page.locator('#generate').click()
         expect(page.locator('#spec-detail')).to_be_visible()
         expect(page.locator('#references')).to_contain_text('审批来源')
@@ -209,8 +237,7 @@ class WorkbenchBrowserTests(unittest.TestCase):
         first_task = page.evaluate('window.docloopState.specs.find(s=>s.title==="资料导入与审批").id')
         page.locator('#new-task').click()
         expect(page.locator('#task-title')).to_have_text('请选择任务')
-        page.locator('#spec-title').fill('独立复核任务')
-        page.locator('#requirement').fill('独立任务的规格和执行记录不能与其他任务混淆。')
+        page.locator('#requirement').fill('独立复核任务\n独立任务的规格和执行记录不能与其他任务混淆。')
         page.locator('#generate').click()
         expect(page.locator('#task-title')).to_have_text('独立复核任务')
         second_task = page.evaluate('window.docloopState.specs.find(s=>s.title==="独立复核任务").id')

@@ -8,6 +8,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WorkbenchApiTests(unittest.TestCase):
+    def test_model_options_and_persistent_selection_are_restricted(self):
+        selected = self.client.post('/api/settings/model/select', headers=self.headers,
+            json={'model': 'deepseek-v4.1-flash'})
+        self.assertEqual(selected.status_code, 200)
+        self.assertEqual(len(selected.json()['options']), 2)
+        self.assertFalse(selected.json()['configured'])
+        self.assertEqual(self.client.post('/api/settings/model/select', headers=self.headers,
+            json={'model': 'other-model'}).status_code, 400)
+        from docloop.model_gateway import ModelGateway
+        restored = ModelGateway(settings_path=Path(self.tmp.name) / '.settings/model-settings.json')
+        self.assertEqual(restored.public_config()['model'], 'deepseek-v4.1-flash')
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

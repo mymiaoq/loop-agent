@@ -67,6 +67,11 @@ class WorkbenchStartupTests(unittest.TestCase):
                 url = ready(old, log)
                 port = url.rsplit(':', 1)[1]
                 state = httpx.get(url + '/api/state', trust_env=False).json()
+                configured = httpx.post(url + '/api/settings/model', trust_env=False,
+                    headers={'X-DocLoop-Token': state['csrf_token']}, json={
+                        'model': 'deepseek-v4.1-flash', 'base_url': 'https://api.deepseek.com',
+                        'api_key': 'restart-test-private-key'})
+                self.assertEqual(configured.status_code, 200)
                 foreign, foreign_log = launch('foreign', base / 'other', port, '--restart')
                 foreign.wait(timeout=20)
                 self.assertNotEqual(foreign.returncode, 0)
@@ -78,6 +83,9 @@ class WorkbenchStartupTests(unittest.TestCase):
                 restored = httpx.get(url + '/api/state', trust_env=False).json()
                 self.assertEqual(restored['projects'], state['projects'])
                 self.assertNotEqual(restored['csrf_token'], state['csrf_token'])
+                self.assertEqual(restored['environment']['model']['model'], 'deepseek-v4.1-flash')
+                self.assertTrue(restored['environment']['model']['has_api_key'])
+                self.assertNotIn('restart-test-private-key', json.dumps(restored))
             finally:
                 # Windows venv启动器可能有子进程，先请求服务正常退出并释放数据锁。
                 if url:

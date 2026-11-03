@@ -4,17 +4,19 @@
 
 ## 启动
 
-Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作台。默认地址为 `http://127.0.0.1:8765`，默认数据目录为项目同级的 `agent-loop-data`（本机为 `D:\项目\agent-loop-data`）。每次启动会先关闭同一项目、同一数据目录的旧工作台，等待端口释放后启动最新代码；不会关闭其他项目的服务。资料和审批保留，重启会清空模型会话凭据。需要停止时，在服务窗口按 Ctrl+C。
+Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作台。默认地址为 `http://127.0.0.1:8765`，默认数据目录为项目同级的 `agent-loop-data`（本机为 `D:\项目\agent-loop-data`）。每次启动会先关闭同一项目、同一数据目录的旧工作台，等待端口和数据锁释放后启动最新代码；不会关闭其他项目的服务。资料、审批和模型配置均保留。需要停止时，在服务窗口按 Ctrl+C。
 
 当前机器已准备运行环境；新机器首次需要 uv、Git 和网络下载依赖。启动脚本优先使用已安装环境，只在缺少依赖时安装锁定版本。日常操作无需输入 PowerShell。
 
-工作台采用“左侧任务区、右侧执行区”：左侧选择项目、搜索/选择任务、查看阶段，并在底部输入新需求；名称可选，点击↑提交后创建任务。右侧集中展示真实执行记录，可筛选类型、展开详情、切换需求规格进行编辑审批，并查看实际产物。
+工作台采用“左侧任务区、右侧执行区”：左侧选择项目、搜索/选择任务、查看阶段，并在底部直接描述新需求；任务名自动取需求首行，点击↑创建任务。模型下拉可以直接切换，短模式选择为“演示 / 模型”。右侧展示真实执行记录，可筛选、展开、切换规格编辑审批并查看产物。
 
 资料、历史运行、本地 Skills 与设置保留在左下辅助入口。仍支持 UTF-8 Markdown/TXT（单文件≤2MiB）、关键词检索、版本化来源、Spec Hash审批和 LangGraph 受控验证。任务沿用现有规格与运行数据，不需要数据库结构迁移；刷新保留项目和任务选择。手机端通过顶部“任务”按钮打开左侧抽屉。
 
 右侧记录取自当前任务的真实审计、阶段JSONL及验证证据；默认范围为最近20次受控运行与最多100条相关审计。用户切换任务时会立即清空旧任务记录，在途响应不能抢回当前选择。资料同名换版保留旧引用；停用后立即退出新检索。
 
-已配置明确的通用 Chat-Completions 地址时，也可在设置页填写模型名和 API Key，测试连接后选择真实模型生成。凭据仅保留服务进程内存，不写数据库或浏览器存储。未配置真实模型时不会自动伪装成真实调用。本轮没有真实接口，实际模型验收尚未执行。
+仅支持 **GPT 6.1 Sol** 和 **DeepSeek V4.1 Flash**。GPT通过本机Codex CLI复用已有登录，在只读临时工作区生成Spec，不复制登录令牌；DeepSeek通过Chat Completions调用官方`deepseek-flash`别名。模型选择和独立配置持久保存到数据目录`.settings/model-settings.json`；DeepSeek密钥用当前Windows用户DPAPI加密，API不回显密钥，留空沿用已保存值。切换和重启不丢配置；新机器仍需自己的Codex登录或DeepSeek Key。已配置模型默认用于规格生成，也可明确选择演示。GPT真实连通性及Spec生成已在隔离测试中验证；DeepSeek仅完成fixture验证，尚无真实Key验收。
+
+设置页可为当前项目登记干净的本地Git仓库，并为已批准的当前任务准备独立Worktree。准备绑定精确Spec Hash与Commit、拒绝脏源仓库，禁用Git hook/filter/fsmonitor/外部diff，不覆盖用户改动。当前只完成执行准备；Docker不可用或真实编码门禁未启用时明确阻止生成代码执行。完整Run取消、业务编码/修复/验收仍待后续闭环；只读Codex调用已支持超时、取消和Windows Job Object进程树清理。
 
 **当前默认是明确标记的 SQLite 沙箱。** Oracle 关系存储入口和 SQL 已准备，真实数据库未连接。所有“运行沙箱验证”都只检查受控文件与流程，不代表生成的 Spec 已完成业务编码或业务验收。
 
@@ -24,7 +26,7 @@ Windows 双击根目录 **启动工作台.cmd**，浏览器会打开本地工作
 
 技术方案逐章对照、22项AT和下一步优先级见 [.docloop/docs/technical-design-comparison.md](.docloop/docs/technical-design-comparison.md)。
 
-选择正常或失败演示，阅读显示的 Spec 与 SHA256，输入 `APPROVE` 后才执行。其他输入保留 draft；每次演示生成独立 Change ID。正常演示会写实际沙箱文件、Git Commit、独立子进程检查日志和 Hash 归档。失败演示预期停在 blocked，属于门禁生效。
+选择成功或失败场景，先审阅Spec并通过按钮批准当前SHA256，再运行受控演示。未批准时不能运行；每次运行生成独立ID。成功路径写实际沙箱文件、Git Commit、独立子进程检查日志和Hash归档；失败路径预期停在blocked，属于门禁生效。
 
 ## 开发与命令
 
@@ -63,7 +65,11 @@ uv run docloop recover demo-001
 | `src/docloop/workbench.py` | 本机 HTTP API、静态工作台、会话令牌和启动入口 |
 | `src/docloop/workbench_store.py` | 项目、资料版本、Spec/审批、运行及事件的关系存储 |
 | `src/docloop/workbench_service.py` | 资料引用、需求生成及隔离运行的业务服务 |
-| `src/docloop/model_gateway.py` | 可配置模型接口、有限重试和进程内凭据 |
+| `src/docloop/model_gateway.py` | 双模型路由、有限重试、服务关闭取消 |
+| `src/docloop/model_settings.py` | 双档案持久化与Windows用户DPAPI密钥保护 |
+| `src/docloop/codex_runtime.py` | 单一Codex只读Runtime、输出预算及进程树清理 |
+| `src/docloop/worktree_runtime.py` | 显式登记仓库的幂等Worktree准备与快照 |
+| `src/docloop/execution_preparation.py` | 项目仓库绑定、审批门禁、准备API及执行阻断 |
 | `src/docloop/workbench_static/` | 无 CDN 的 HTML/CSS/JS 工作台资源 |
 | `migrations/oracle/` | Oracle 工作台关系表 SQL，需在专用 Schema 审阅后执行 |
 | `.docloop/agents/` | 五个专业角色的源文档契约 |

@@ -1,5 +1,5 @@
-"""可选 Chat-Completions 网关。凭据仅保留本服务进程内存。"""
-from threading import RLock
+"""双模型网关；工作台使用本地持久档案，独立fixture仍可注入通用接口。"""
+from threading import RLock, Event
 from urllib.parse import urlsplit
 import httpx
 from .reliability import Reliability, Limits, Blocked
@@ -10,31 +10,84 @@ class ModelUnavailable(RuntimeError):
 
 
 class ModelGateway:
-    def __init__(self, *, transport=None):
+    def __init__(self, *, transport=None, settings_path=None, codex_runtime=None):
         self._settings = None
         self._lock = RLock()
         self.transport = transport
+        from .model_settings import ModelSettings
+        self.store = ModelSettings(settings_path) if settings_path is not None else None
+        self.codex_runtime = codex_runtime
+        self._active = set()
+
+    def cancel_all(self):
+        """服务退出时取消自身持有的只读模型调用，不影响外部Codex会话。"""
+        with self._lock:
+            for signal in self._active:
+                signal.set()
+            return len(self._active)
+
+    def _codex(self):
+        if self.codex_runtime is None:
+            from .codex_runtime import CodexRuntime
+            self.codex_runtime = CodexRuntime()
+        return self.codex_runtime
+
+    def select(self, model):
+        if self.store is None:
+            raise ValueError('未启用模型持久化档案。')
+        self.store.select(model)
+        return self.public_config()
 
     def configure(self, base_url, model, api_key):
+        if self.store is not None and model == 'gpt-6.1-sol':
+            self.store.configure(model, '', api_key)
+            return self.public_config()
         parts = urlsplit(base_url.strip())
         if (parts.scheme not in {'http', 'https'} or not parts.hostname or parts.username
                 or parts.password or parts.query or parts.fragment):
             raise ValueError('模型地址需要有效的HTTP(S)接口基础地址，不含URL凭据或查询参数。')
         if not model.strip() or len(model) > 200 or len(api_key) > 4096:
             raise ValueError('请输入有效模型名称和密钥。')
+        if self.store is not None:
+            self.store.configure(model, base_url.strip().rstrip('/'), api_key)
+            return self.public_config()
         with self._lock:
             self._settings = (base_url.strip().rstrip('/'), model.strip(), api_key.strip())
         return self.public_config()
 
     def public_config(self):
+        if self.store is not None:
+            try:
+                self._codex()
+                available = True
+            except RuntimeError:
+                available = False
+            return self.store.public(available)
         with self._lock:
             settings = self._settings
         return {'configured': settings is not None, 'base_url': settings[0] if settings else '',
                 'model': settings[1] if settings else '', 'credentials_storage': 'process-memory-only'}
 
-    def complete(self, messages):
-        with self._lock:
-            settings = self._settings
+    def complete(self, messages, *, cancel_event=None):
+        if self.store is not None:
+            profile = self.store.active()
+            if not profile['enabled']:
+                raise ModelUnavailable('当前模型尚未配置，请在设置中保存连接。')
+            if profile['provider'] == 'codex-cli':
+                signal = cancel_event if cancel_event is not None else Event()
+                with self._lock:
+                    self._active.add(signal)
+                try:
+                    return self._codex().complete(messages, cancel_event=signal)
+                except RuntimeError:
+                    raise ModelUnavailable('GPT调用未完成，请检查Codex登录、模型权限、取消或超时状态。') from None
+                finally:
+                    with self._lock:
+                        self._active.discard(signal)
+            settings = (profile['base_url'], profile['api_model'], profile['api_key'])
+        else:
+            with self._lock:
+                settings = self._settings
         if settings is None:
             raise ModelUnavailable('尚未配置真实模型接口；请选择沙箱演示或在设置中连接模型。')
         base, model, key = settings

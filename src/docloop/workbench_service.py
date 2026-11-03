@@ -28,7 +28,7 @@ class WorkbenchService:
     def __init__(self, project_root: Path, store, gateway=None):
         self.project_root = Path(project_root).resolve()
         self.store = store
-        self.gateway = gateway or ModelGateway()
+        self.gateway = gateway or ModelGateway(settings_path=self.store.root / '.settings/model-settings.json')
 
     def environment(self):
         return {'storage_backend': self.store.backend, 'data_root': str(self.store.root),
@@ -41,7 +41,9 @@ class WorkbenchService:
         if not projects:
             projects = [self.store.create_project('默认项目')]
         project_id = project_id or projects[0]['id']
+        from .execution_preparation import ExecutionPreparation
         return {'environment': self.environment(), 'projects': projects, 'project_id': project_id,
+                'repository': ExecutionPreparation(self.store).binding(project_id),
                 'documents': self.store.documents(project_id), 'specs': self.store.specs(project_id),
                 'runs': self.store.history(project_id), 'events': self.store.event_history(project_id),
                 'task_summaries': self.store.task_summaries(project_id)}

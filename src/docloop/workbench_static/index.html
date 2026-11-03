@@ -60,17 +60,17 @@
         <span class="composer-label">新任务</span>
         <span class="composer-note">不修改当前任务</span>
       </div>
-      <label class="sr-only" for="spec-title">新任务标题（可选）</label>
-      <input id="spec-title" placeholder="任务标题（可选）" maxlength="200">
       <label class="sr-only" for="requirement">新任务需求</label>
       <textarea id="requirement" rows="3" maxlength="12000" placeholder="描述新任务的目标与验收条件…"></textarea>
+      <label class="sr-only" for="active-model">当前模型</label>
+      <select id="active-model" aria-label="当前模型"><option value="gpt-6.1-sol">GPT 6.1 Sol</option><option value="deepseek-v4.1-flash">DeepSeek V4.1 Flash</option></select>
       <div class="composer-tools">
         <button id="attachment" type="button" class="icon-button" title="打开资料库" aria-label="打开资料库">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3l8-8"/></svg>
         </button>
         <select id="generation-mode" aria-label="生成模式">
-          <option value="sandbox">沙箱生成</option>
-          <option value="real" disabled>真实模型（未配置）</option>
+          <option value="sandbox">演示</option>
+          <option value="real" disabled>模型</option>
         </select>
         <button id="generate" type="button" class="send-button" aria-label="提交新任务" title="提交新任务">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
@@ -266,17 +266,20 @@
         <article class="panel">
           <div class="panel-heading">
             <h3>模型连接</h3>
-            <span class="pill pill-soft">会话内存</span>
+            <span class="pill pill-soft">本地持久化</span>
           </div>
           <form id="model-form">
-            <label class="field-label" for="base-url">Base URL</label>
-            <input id="base-url" type="url" maxlength="2000" placeholder="https://example.com/v1" required>
             <label class="field-label" for="model">模型名称</label>
-            <input id="model" maxlength="200" required>
+            <select id="model"><option value="gpt-6.1-sol">GPT 6.1 Sol</option><option value="deepseek-v4.1-flash">DeepSeek V4.1 Flash</option></select>
+            <p id="model-auth-note" class="muted">GPT使用本机Codex登录；配置重启后保留。</p>
+            <div id="model-api-fields" hidden>
+            <label class="field-label" for="base-url">Base URL</label>
+            <input id="base-url" type="url" maxlength="2000" placeholder="https://api.deepseek.com">
             <label class="field-label" for="api-key">API Key</label>
-            <input id="api-key" type="password" autocomplete="off" maxlength="4096" required>
+            <input id="api-key" type="password" autocomplete="new-password" maxlength="4096" placeholder="已保存时留空沿用">
+            </div>
             <div class="actions">
-              <button class="primary" type="submit">保存会话配置</button>
+              <button class="primary" type="submit">保存模型配置</button>
               <button id="test-model" type="button">测试连接</button>
             </div>
           </form>
@@ -287,6 +290,12 @@
           </div>
           <dl id="environment-info" class="environment"></dl>
           <p class="boundary">沙箱结果不能作为真实模型推理或业务验收证据。</p>
+          <h3>执行工作区准备</h3>
+          <label class="field-label" for="repository-path">当前项目的本地Git仓库</label>
+          <input id="repository-path" placeholder="选择已有的干净Git仓库，填写绝对路径">
+          <p id="repository-binding" class="muted">尚未登记仓库</p>
+          <div class="actions"><button id="register-repository" type="button">登记仓库</button><button id="prepare-execution" type="button">准备当前任务工作区</button></div>
+          <p id="preparation-status" role="status" class="muted">准备仅创建隔离Worktree，不运行生成代码。</p>
         </article>
       </div>
     </section>

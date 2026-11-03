@@ -62,9 +62,17 @@ class RunInput(Input):
 
 
 class ModelInput(Input):
-    base_url: str = Field(max_length=2000)
+    base_url: str = Field(default='', max_length=2000)
     model: str = Field(max_length=200)
     api_key: str = Field(default='', max_length=4096, repr=False)
+
+
+class ModelSelection(Input):
+    model: str = Field(max_length=200)
+
+
+class RepositoryInput(Input):
+    path: str = Field(min_length=1, max_length=2000)
 
 
 def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initialize_oracle=False):
@@ -152,6 +160,7 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
         callback = getattr(app.state, 'stop_callback', None)
         if callback is None:
             raise Conflict('当前并非独立运行的工作台服务。')
+        service.gateway.cancel_all()
         callback()
         return {'ok': True, 'message': '已请求停止工作台，正在等待活动请求结束。'}
 
@@ -178,6 +187,16 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     @app.post('/api/projects/{project_id}/specs')
     def create_spec(project_id: str, body: SpecInput):
         return service.generate_spec(project_id, body.title, body.requirement, body.mode)
+
+    @app.post('/api/projects/{project_id}/repository')
+    def register_repository(project_id: str, body: RepositoryInput):
+        from .execution_preparation import ExecutionPreparation
+        return ExecutionPreparation(store).register(project_id, body.path)
+
+    @app.post('/api/projects/{project_id}/specs/{spec_id}/prepare')
+    def prepare_execution(project_id: str, spec_id: str):
+        from .execution_preparation import ExecutionPreparation
+        return ExecutionPreparation(store).prepare(project_id, spec_id)
 
     @app.get('/api/projects/{project_id}/specs/{spec_id}/execution')
     def execution(project_id: str, spec_id: str):
@@ -214,6 +233,10 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     @app.post('/api/settings/model')
     def configure_model(body: ModelInput):
         return service.gateway.configure(body.base_url, body.model, body.api_key)
+
+    @app.post('/api/settings/model/select')
+    def select_model(body: ModelSelection):
+        return service.gateway.select(body.model)
 
     @app.post('/api/settings/model/test')
     def test_model():
