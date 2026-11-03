@@ -27,7 +27,7 @@ if errorlevel 1 (
   exit /b 1
 )
 :run
-"%DOCLOOP_PY%" -m docloop.workbench --root "%~dp0." --open %*
+"%DOCLOOP_PY%" -m docloop.workbench --root "%~dp0." --restart --open %*
 set "DOCLOOP_EXIT=%ERRORLEVEL%"
 if not "%DOCLOOP_EXIT%"=="0" (
   echo Workbench stopped with an error. Keep this window for troubleshooting.

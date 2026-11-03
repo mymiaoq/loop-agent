@@ -22,6 +22,7 @@ from .skill_runtime import SkillRegistry
 from .workbench_service import WorkbenchService
 from .workbench_store import WorkbenchStore, Conflict, NotFound
 from .execution_lock import run_lock
+from .governance import GateError
 from . import __version__
 
 
@@ -214,7 +215,7 @@ def create_app(project_root: Path, data_root: Path, *, storage='sandbox', initia
     return app
 
 
-def find_instance(project_root, data_root, port, storage=None):
+def find_instance(project_root, data_root, port, storage=None, *, require_current_version=True):
     import httpx
     if not port:
         return None
@@ -226,7 +227,7 @@ def find_instance(project_root, data_root, port, storage=None):
             health = response.json()
         expected_backend = {'sandbox': 'sandbox-sqlite', 'oracle': 'oracle'}.get(storage)
         if (isinstance(health, dict) and health.get('application') == 'docloop-workbench'
-                and health.get('version') == __version__
+                and (not require_current_version or health.get('version') == __version__)
                 and (expected_backend is None or health.get('storage_backend') == expected_backend)
                 and Path(health['project_root']) == Path(project_root).resolve()
                 and Path(health['data_root']) == Path(data_root).resolve()):
@@ -238,7 +239,8 @@ def find_instance(project_root, data_root, port, storage=None):
 
 def stop_existing(project_root, data_root, port):
     import httpx
-    url = find_instance(project_root, data_root, port)
+    # 升级后的启动器也能停止旧版本，但仍必须匹配项目与数据目录。
+    url = find_instance(project_root, data_root, port, require_current_version=False)
     if url is None:
         return {'ok': True, 'message': '未找到此项目与数据目录对应的运行中工作台。'}
     with httpx.Client(timeout=5, trust_env=False) as client:
@@ -246,11 +248,27 @@ def stop_existing(project_root, data_root, port):
         session.raise_for_status()
         result = client.post(url + '/api/shutdown', headers={'X-DocLoop-Token': session.json()['csrf_token']})
         result.raise_for_status()
-        return result.json()
+        answer = result.json()
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        with socket.socket() as probe:
+            probe.settimeout(.2)
+            if probe.connect_ex(('127.0.0.1', port)) != 0:
+                try:
+                    # Uvicorn先关监听端口，活动请求和lifespan此时可能仍持有数据锁。
+                    with run_lock(Path(data_root), 'workbench-service'):
+                        return answer
+                except GateError:
+                    pass
+        time.sleep(.1)
+    raise ValueError('旧工作台仍在处理请求，尚未释放端口或数据锁；请稍后再次启动。')
 
 
-def serve(project_root, data_root, *, port=8765, storage='sandbox', open_browser=False, initialize_oracle=False):
+def serve(project_root, data_root, *, port=8765, storage='sandbox', open_browser=False, initialize_oracle=False,
+          restart=False):
     import uvicorn
+    if restart:
+        stop_existing(project_root, data_root, port)
     existing = find_instance(project_root, data_root, port, storage) if open_browser else None
     if existing:
         webbrowser.open(existing)
@@ -293,6 +311,7 @@ def main():
     parser.add_argument('--init-db', action='store_true')
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--stop', action='store_true')
+    parser.add_argument('--restart', action='store_true')
     args = parser.parse_args()
     data_root = args.data_root or Path(os.environ.get('DOCLOOP_DATA_ROOT', str(args.root.resolve().parent / 'agent-loop-data')))
     if args.stop:
@@ -309,7 +328,7 @@ def main():
             app.state.service.store.close()
         return
     serve(args.root, data_root, port=args.port,
-          storage=args.storage, open_browser=args.open, initialize_oracle=args.init_db)
+          storage=args.storage, open_browser=args.open, initialize_oracle=args.init_db, restart=args.restart)
 
 
 if __name__ == '__main__':

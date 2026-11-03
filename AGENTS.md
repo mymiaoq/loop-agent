@@ -2,7 +2,7 @@
 
 本仓库是 Python + LangGraph 的 DocLoop 平台框架。当前实现范围见 `.docloop/changes/20261102-framework/spec.md`，审批记录独立保存在 baseline/approval.json。
 
-第二轮工作台范围与验收计划见 `.docloop/docs/workbench-iteration-plan.md`。工作台业务数据根目录默认位于项目同级 `agent-loop-data`；测试使用系统临时目录，不复用用户的工作台资料、审批或模型设置。普通启动优先根目录 `启动工作台.cmd`，停止使用 `停止工作台.cmd`。Oracle 和真实模型的受控结构/fixture 检查与真实环境验收分别记录。
+第二轮工作台范围与验收计划见 `.docloop/docs/workbench-iteration-plan.md`。工作台业务数据根目录默认位于项目同级 `agent-loop-data`；测试使用系统临时目录，不复用用户的工作台资料、审批或模型设置。普通启动使用根目录 `启动工作台.cmd`，自动关闭匹配项目及数据目录的旧实例并等待端口释放；手动停止可在服务窗口按 Ctrl+C。Oracle 和真实模型的受控结构/fixture 检查与真实环境验收分别记录。
 
 ## 开发本框架
 
